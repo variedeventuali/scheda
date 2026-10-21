@@ -136,9 +136,6 @@ textarea.txt { resize: vertical; }
 .btn.danger { color: var(--red); border-color: var(--red); }
 .chk { display: flex; gap: 10px; align-items: center; min-height: 44px; }
 .chk input { width: 22px; height: 22px; }
-.filebtn { display: inline-flex; align-items: center; cursor: pointer; }
-.filebtn input { display: none; }
-.nag { border-style: solid; border-color: var(--orange); }
 .exitwrap { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .5); display: flex; align-items: center; justify-content: center; padding: 16px; }
 .exitcard { padding: 18px; display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 360px; }
 .exitcard b { font-family: var(--f-display); font-size: 26px; text-transform: uppercase; }
@@ -259,7 +256,7 @@ textarea.txt { resize: vertical; }
   var DK = function () { return prof === 'lui' ? 'gym-draft' : 'gym-draft-lei'; };
 
   /* ---------- Stato e salvataggio ---------- */
-  var DEF = function () { return { phase: 1, weeks: { 1: 1, 2: 1, 3: 1, 4: 1 }, loads: {}, history: [], plan: null, lastBackup: '', updatedAt: 0, resetAt: 0 }; };
+  var DEF = function () { return { phase: 1, weeks: { 1: 1, 2: 1, 3: 1, 4: 1 }, loads: {}, history: [], plan: null, updatedAt: 0, resetAt: 0 }; };
   var state = DEF();
   var store = { mode: 'local', ref: null };
   var view = 'profiles', cur = null, draft = null, statusMsg = '';
@@ -274,7 +271,6 @@ textarea.txt { resize: vertical; }
     d = clone(d);
     if (d.phase >= 1) state.phase = d.phase;
     if (Array.isArray(d.plan) && d.plan.length) state.plan = d.plan;
-    if (typeof d.lastBackup === 'string') state.lastBackup = d.lastBackup;
     if (typeof d.updatedAt === 'number') state.updatedAt = d.updatedAt;
     if (typeof d.resetAt === 'number') state.resetAt = d.resetAt;
     if (d.weeks) for (var k in d.weeks) state.weeks[k] = d.weeks[k];
@@ -379,16 +375,8 @@ textarea.txt { resize: vertical; }
     PROFILES.forEach(function (p, i) {
       out += '<button class="card sess" style="--c:' + COLORS[i % 4] + '" data-a="profile" data-id="' + p.id + '"><span class="bar"></span><span><h3>' + esc(p.name) + '</h3><span class="meta">' + esc(peek(p)) + '</span></span><span class="go" aria-hidden="true">›</span></button>';
     });
-    var d = daysSince(lsGet('gym-last-backup')), stale = PROFILES.some(function (p) { var st = storedState(p.id); return st && st.history && st.history.length; }) && (d === null || d >= 7);
     var sc = syncCfg();
     out += '<h2>Sincronizzazione</h2><div class="note"><b>' + (sc ? 'Attiva' : 'Non attiva') + '</b><br><span class="syncmsg">' + esc(syncLabel()) + '</span><div class="row" style="margin-top:10px"><button class="btn small" data-a="sync-open">' + (sc ? 'Impostazioni' : 'Imposta') + '</button>' + (sc ? '<button class="btn small ghost" data-a="sync-now">Sincronizza ora</button>' : '') + '</div></div>';
-    out += '<h2>Backup</h2><div class="note' + (stale ? ' nag' : '') + '"><b>Salva tutto</b><br>' + esc(backupLabel()) + ' Il file contiene entrambi i profili: schede con le modifiche agli esercizi, carichi, storico, fase e settimane.<div class="row" style="margin-top:10px"><button class="btn small" data-a="export">Salva backup</button><label class="btn small ghost filebtn">Recupera da backup<input type="file" id="impfile" accept="application/json,.json"></label></div></div>';
-    if (pendingImport) {
-      out += '<div class="card phase"><div><b>Recuperare dal backup?</b></div><div class="muted small">Sostituisce questi dati con quelli del file:</div><ul class="items">' + PROFILES.filter(function (p) { return pendingImport.profiles[p.id]; }).map(function (p) {
-        var st = pendingImport.profiles[p.id].state, h = st.history || [];
-        return '<li><b>' + esc(p.name) + '</b>: ' + st.plan.reduce(function (n, ph) { return n + ph.sessions.length; }, 0) + ' allenamenti in scheda, ' + h.length + ' sessioni nello storico</li>';
-      }).join('') + '</ul><div class="row"><button class="btn small" data-a="imp-yes">Sì, recupera</button><button class="btn small ghost" data-a="imp-no">Annulla</button></div></div>';
-    }
     return out;
   }
   function home() {
@@ -396,7 +384,6 @@ textarea.txt { resize: vertical; }
     var order = p.sessions.map(function (s, i) { return { s: s, i: i, last: lastDone(p.id, s.id) }; });
     var rec = order.slice().sort(function (a, b) { return (a.last || '') < (b.last || '') ? -1 : (a.last || '') > (b.last || '') ? 1 : a.i - b.i; })[0] || { i: -1 };
     var out = '<button class="back" data-a="profiles">‹ Cambia profilo (' + esc(PROFILES.filter(function (x) { return x.id === prof; })[0].name) + ')</button><div class="top"><div><div class="eyebrow">Fase ' + phNum(p) + ' · ' + esc(p.name) + ' · Settimana ' + wk + '</div><h1>Scegli l’allenamento</h1></div></div>';
-    out += nagHTML();
     order.forEach(function (o) {
       var done = o.s.ex.filter(function (e) { return !e.note; }).length;
       out += '<button class="card sess" style="--c:' + COLORS[o.i % 4] + '" data-a="open" data-i="' + o.i + '"><span class="bar"></span><span><h3>' + esc(o.s.label) + '</h3><span class="meta">' + esc(o.s.tag) + ' · ' + done + (o.s.ex[0] && o.s.ex[0].circuit ? ' circuiti' : ' esercizi') + ' · ' + (o.last ? 'ultimo ' + fmt(o.last) : 'mai fatto') + '</span></span>' +
@@ -444,10 +431,9 @@ textarea.txt { resize: vertical; }
         '<div class="row">' + (act ? '' : '<button class="btn small" data-a="activate" data-p="' + p.id + '">Passa a questa fase</button>') + (act && nx ? '<button class="btn small ghost" data-a="activate" data-p="' + nx.id + '">Vai alla fase ' + (idx + 2) + '</button>' : '') + '<button class="btn small ghost" data-a="ed-phase" data-id="' + p.id + '">Modifica</button></div></div>';
     });
     out += '<button class="btn" data-a="add-phase">Aggiungi fase</button>';
-    out += '<p class="muted small" style="margin:0">Il backup e il recupero dei dati si fanno dalla schermata iniziale (Cambia profilo).</p>';
     return out;
   }
-  var progKey = '', askReset = false, armed = '', armT = null, pendingImport = null, editCtx = {};
+  var progKey = '', askReset = false, armed = '', armT = null, editCtx = {};
   function history() {
     var keys = {}; state.history.forEach(function (h) { for (var k in (h.l || {})) keys[k] = 1; });
     var list = Object.keys(keys).sort(function (a, b) { return (NAMES[a] || a).localeCompare(NAMES[b] || b, 'it'); });
@@ -549,52 +535,6 @@ textarea.txt { resize: vertical; }
     else if (k === 'phase') { var id = PHASES[i].id; PHASES.splice(i, 1); if (state.phase === id) state.phase = PHASES[0].id; view = 'phases'; }
     buildIndex(); queueSave(); render(); toast('Eliminato');
   }
-  function daysSince(iso) {
-    if (!iso) return null;
-    var p = iso.split('-'), t = new Date(+p[0], +p[1] - 1, +p[2]), n = new Date(); n.setHours(0, 0, 0, 0);
-    return Math.max(0, Math.round((n - t) / 86400000));
-  }
-  function backupLabel() {
-    var d = daysSince(lsGet('gym-last-backup'));
-    return d === null ? 'Nessun backup ancora.' : d === 0 ? 'Ultimo backup: oggi.' : d === 1 ? 'Ultimo backup: ieri.' : 'Ultimo backup: ' + d + ' giorni fa.';
-  }
-  function nagHTML() {
-    var d = daysSince(lsGet('gym-last-backup'));
-    if (!state.history.length || (d !== null && d < 7)) return '';
-    return '<div class="note nag"><b>Fai un backup</b><br>' + esc(backupLabel()) + ' Si fa dalla schermata iniziale.<div class="row" style="margin-top:10px"><button class="btn small" data-a="profiles">Vai al backup</button></div></div>';
-  }
-  async function exportData() {
-    await flush();
-    var profs = {};
-    PROFILES.forEach(function (p) { var st = storedState(p.id); if (st) profs[p.id] = { state: clone(st) }; });
-    if (!Object.keys(profs).length) { toast('Non c\u2019è ancora niente da salvare'); return; }
-    var body = JSON.stringify({ app: 'scheda-palestra', v: 2, date: today(), profiles: profs }, null, 1);
-    var name = 'scheda-palestra-backup-' + today() + '.json', done = false;
-    try {
-      var file = new File([body], name, { type: 'application/json' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try { await navigator.share({ files: [file], title: 'Backup scheda palestra' }); done = true; }
-        catch (e) { if (e && e.name === 'AbortError') return; }
-      }
-    } catch (e) {}
-    if (!done) {
-      try {
-        var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([body], { type: 'application/json' }));
-        a.download = name; document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000); done = true;
-      } catch (e) {}
-    }
-    if (!done) { toast('Non riesco a salvare il backup'); return; }
-    lsSet('gym-last-backup', today()); render(); toast('Backup pronto');
-  }
-  function applyImport() {
-    var pr = pendingImport.profiles; pendingImport = null;
-    clearTimeout(saveTimer); loadedProf = null; state = DEF(); draft = null;
-    PROFILES.forEach(function (p) { if (pr[p.id]) { pr[p.id].state.updatedAt = Date.now(); lsSet(keyFor(p.id), JSON.stringify(pr[p.id].state)); lsSet(p.id === 'lui' ? 'gym-draft' : 'gym-draft-lei', ''); } });
-    lsSet('gym-last-backup', today());
-    render(); toast('Dati recuperati'); scheduleSync();
-  }
-
   function render() {
     var el = document.getElementById('app');
     el.innerHTML = view === 'profiles' ? profilesView() : view === 'home' ? home() : view === 'workout' ? workout() : view === 'phases' ? phases() : view === 'edphase' ? edphase() : view === 'edsess' ? edsess() : view === 'edex' ? edex() : view === 'sync' ? syncView() : history();
@@ -615,7 +555,7 @@ textarea.txt { resize: vertical; }
       document.getElementById('exit').hidden = false;
       return;
     }
-    stopTimer(); armed = ''; pendingImport = null;
+    stopTimer(); armed = '';
     popping = true;
     if (st && st.view && (st.view === 'profiles' || loadedProf === prof)) { view = st.view; editCtx = st.ctx || {}; cur = st.cur; }
     else { view = 'profiles'; }
@@ -797,9 +737,6 @@ textarea.txt { resize: vertical; }
       if (armed !== tok) { armed = tok; render(); clearTimeout(armT); armT = setTimeout(function () { armed = ''; render(); }, 3500); }
       else { armed = ''; clearTimeout(armT); doDelete(b.dataset.k, +b.dataset.i); }
     }
-    else if (a === 'export') exportData();
-    else if (a === 'imp-no') { pendingImport = null; render(); }
-    else if (a === 'imp-yes') applyImport();
     else if (a === 'nav') { askReset = false; stopTimer(); view = b.dataset.v; progKey = progKey; render(); window.scrollTo(0, 0); }
     else if (a === 'open') {
       cur = +b.dataset.i; var ph = phaseObj(), sid = ph.id + ph.sessions[cur].id;
@@ -846,21 +783,6 @@ textarea.txt { resize: vertical; }
     var t = ev.target;
     if (t.id === 'progsel') { progKey = t.value; render(); }
     else if (t.type === 'checkbox' && t.dataset.f) { editField(t); render(); }
-    else if (t.id === 'impfile' && t.files && t.files[0]) {
-      var fr = new FileReader();
-      fr.onload = function () {
-        try {
-          var d = JSON.parse(fr.result), pr = {};
-          if (d && d.app === 'scheda-palestra') {
-            if (d.profiles) pr = d.profiles; else if (d.state && d.profile) pr[d.profile] = { state: d.state };
-          }
-          var ok = {}, any = false;
-          PROFILES.forEach(function (p) { var e = pr[p.id]; if (e && e.state && Array.isArray(e.state.plan) && e.state.plan.length) { ok[p.id] = e; any = true; } });
-          if (any) { pendingImport = { profiles: ok }; render(); } else toast('File non valido');
-        } catch (e) { toast('File non valido'); }
-      };
-      fr.readAsText(t.files[0]); t.value = '';
-    }
   }
 
   document.addEventListener('click', onClick);
