@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#1d3fb8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Scheda Palestra</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+[hidden] { display: none !important; }
+/* Layout: una colonna stretta da telefono, lista di esercizi stile foglio di carta, navigazione fissa in basso. */
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --ink: #151a22;
+  --muted: #5d6676;
+  --line: #dde2ea;
+  --biro: #1d3fb8;
+  --red: #c0392b;
+  --orange: #c4631f;
+  --green: #2a7d52;
+  --blue: #2b6cb0;
+  --done: #e7f3ec;
+  --f-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --f-body: "Barlow", system-ui, sans-serif;
+  --f-pen: "Barlow Condensed", "Arial Narrow", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1318; --surface: #181e26; --ink: #eaeef4; --muted: #9aa5b5; --line: #29313c;
+    --biro: #8ea6ff; --red: #ff7b6b; --orange: #f09a5a; --green: #5cc38f; --blue: #6fb0f2; --done: #15281f;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1318; --surface: #181e26; --ink: #eaeef4; --muted: #9aa5b5; --line: #29313c;
+  --biro: #8ea6ff; --red: #ff7b6b; --orange: #f09a5a; --green: #5cc38f; --blue: #6fb0f2; --done: #15281f;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.35;
+  padding-block: 12px 150px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; }
+.wrap { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 700; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+h1 { font-size: 34px; line-height: 1; text-transform: uppercase; }
+h2 { font-size: 24px; text-transform: uppercase; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.weekpen { font-family: var(--f-pen); font-size: 40px; line-height: .9; color: var(--biro); white-space: nowrap; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.sess { display: grid; grid-template-columns: 8px 1fr auto; gap: 14px; align-items: center; padding: 14px 14px 14px 0; width: 100%; text-align: left; cursor: pointer; }
+.sess .bar { align-self: stretch; border-radius: 10px 0 0 10px; background: var(--c); }
+.sess h3 { font-size: 26px; }
+.sess .meta { font-size: 14px; color: var(--muted); }
+.badge { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; background: var(--ink); color: var(--bg); white-space: nowrap; }
+.go { font-family: var(--f-display); font-size: 28px; color: var(--muted); }
+
+.ex { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; border-left: 4px solid var(--c); }
+.ex.alldone { background: var(--done); }
+.exhead { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.exname { font-weight: 600; font-size: 17px; min-width: 0; overflow-wrap: anywhere; }
+.scheme { font-size: 14px; color: var(--muted); }
+.kgbox { display: flex; align-items: baseline; gap: 4px; flex: none; }
+.kg { width: 96px; border: 0; border-bottom: 2px solid var(--line); background: transparent; color: var(--biro); font-family: var(--f-pen); font-weight: 700; font-size: 28px; line-height: 1.1; text-align: right; font-variant-numeric: tabular-nums; padding: 0 2px; border-radius: 0; }
+.kg:focus { outline: none; border-bottom-color: var(--biro); }
+.unit { font-size: 13px; color: var(--muted); }
+.sets { display: flex; flex-wrap: wrap; gap: 8px; }
+.set { min-width: 48px; height: 48px; border-radius: 8px; border: 2px solid var(--line); background: var(--surface); font-family: var(--f-display); font-weight: 700; font-size: 22px; cursor: pointer; }
+.set[aria-pressed="true"] { background: var(--c); border-color: var(--c); color: #fff; }
+.items { margin: 0; padding-left: 20px; font-size: 15px; }
+.note { padding: 12px 14px; border: 1px dashed var(--line); border-radius: 10px; font-size: 15px; }
+.note .sub { margin-top: 8px; font-weight: 600; }
+.note .nl { margin: 4px 0 0; padding-left: 20px; }
+.note b { font-family: var(--f-display); font-size: 18px; text-transform: uppercase; letter-spacing: .03em; }
+
+.btn { border: 0; border-radius: 8px; padding: 13px 16px; font-weight: 600; cursor: pointer; background: var(--ink); color: var(--bg); min-height: 48px; }
+.btn.ghost { background: transparent; color: var(--ink); border: 2px solid var(--line); }
+.btn.small { min-height: 40px; padding: 8px 12px; font-size: 14px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.back { background: none; border: 0; padding: 8px 0; color: var(--muted); font-weight: 600; cursor: pointer; min-height: 40px; text-align: left; }
+
+.phase { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.phase.active { border-color: var(--biro); box-shadow: 0 0 0 1px var(--biro); }
+.phasehead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.dots { display: flex; gap: 6px; flex-wrap: wrap; }
+.dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); }
+.dot.on { background: var(--biro); border-color: var(--biro); }
+.dot.extra { border-style: dashed; }
+.stepper { display: flex; align-items: center; gap: 10px; }
+.stepper .n { font-family: var(--f-pen); font-weight: 700; font-size: 34px; color: var(--biro); min-width: 40px; text-align: center; line-height: 1; }
+.sq { width: 44px; height: 44px; border-radius: 8px; border: 2px solid var(--line); background: var(--surface); font-size: 22px; cursor: pointer; }
+
+.hist { padding: 12px 14px; display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.hist b { font-weight: 600; }
+select { font: inherit; padding: 10px; border-radius: 8px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); width: 100%; min-height: 46px; }
+.prog { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; padding: 12px 14px; }
+.prog .v { font-family: var(--f-pen); font-weight: 700; font-size: 24px; color: var(--biro); line-height: 1.1; text-align: right; }
+
+.nav { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); display: flex; justify-content: center; padding: 6px max(10px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px)); z-index: 5; }
+.nav .in { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; max-width: 640px; gap: 6px; }
+.nav button { background: none; border: 0; border-radius: 8px; min-height: 48px; font-family: var(--f-display); font-weight: 700; font-size: 20px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); cursor: pointer; }
+.nav button[aria-current="page"] { color: var(--biro); background: var(--bg); }
+.timer { position: fixed; left: 0; right: 0; bottom: calc(66px + env(safe-area-inset-bottom, 0px)); z-index: 6; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
+.timer .in { max-width: 640px; margin: 0 auto; background: var(--ink); color: var(--bg); border-radius: 10px; padding: 8px 10px 8px 16px; display: flex; align-items: center; gap: 8px; }
+.timer .t { font-family: var(--f-display); font-weight: 700; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; flex: 1; }
+.timer .t small { font-family: var(--f-body); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; margin-right: 8px; font-weight: 600; opacity: .75; }
+.timer button { background: transparent; border: 1px solid currentColor; color: inherit; border-radius: 8px; min-height: 44px; padding: 0 12px; font-weight: 600; cursor: pointer; }
+.timer.end [data-a="t+15"], .timer.end [data-a="t-15"] { display: none; }
+.timer.end .in { background: var(--green); color: #fff; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(130px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-weight: 600; z-index: 8; max-width: calc(100% - 32px); }
+.status { font-size: 13px; color: var(--muted); }
+:focus-visible { outline: 3px solid var(--biro); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) { .set { transition: background .12s, border-color .12s; } }
+.fld { display: flex; flex-direction: column; gap: 4px; }
+.fld span { font-size: 14px; color: var(--muted); font-weight: 600; }
+.txt { font: inherit; padding: 10px 12px; border: 2px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); width: 100%; min-height: 46px; }
+textarea.txt { resize: vertical; }
+.txt:focus { outline: none; border-color: var(--biro); }
+.erow { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.etxt { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.ebtns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.sq:disabled { opacity: .35; cursor: default; }
+.btn.danger { color: var(--red); border-color: var(--red); }
+.chk { display: flex; gap: 10px; align-items: center; min-height: 44px; }
+.chk input { width: 22px; height: 22px; }
+.filebtn { display: inline-flex; align-items: center; cursor: pointer; }
+.filebtn input { display: none; }
+.nag { border-style: solid; border-color: var(--orange); }
+.exitwrap { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .5); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.exitcard { padding: 18px; display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 360px; }
+.exitcard b { font-family: var(--f-display); font-size: 26px; text-transform: uppercase; }
+</style>
+
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="timer" id="timer" hidden></div>
+<div class="toast" id="toast" hidden></div>
+<div class="exitwrap" id="exit" hidden role="dialog" aria-modal="true" aria-labelledby="exit-t"><div class="card exitcard"><b id="exit-t">Vuoi uscire?</b><div class="muted small">I tuoi dati sono già salvati.</div><div class="row"><button class="btn" data-a="exit-yes">Esci</button><button class="btn ghost" data-a="exit-no">Resta</button></div></div></div>
+<nav class="nav" aria-label="Sezioni"><div class="in" id="nav"></div></nav>
+
+<script>
+(function () {
+  var slug = function (s) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); };
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+
+  /* ---------- Dati della scheda ---------- */
+  var E = function (n, s, r, rest, kg, o) { o = o || {}; return { n: n, s: s, r: r, rest: rest, kg: kg || '', rt: o.rt, bw: o.bw, extra: o.extra, key: slug(n) }; };
+  var C = function (label, rounds, rest, items) { return { circuit: true, label: label, s: rounds, rest: rest, items: items }; };
+  var N = function (title, text) { return { note: true, title: title, text: text }; };
+  var P1 = function (n, kg) { return E(n, 3, '12-15', 60, kg, { rt: '60-75″' }); };
+  var P2 = function (n, kg) { return E(n, 3, '8-10', 90, kg, { rt: '90-120″' }); };
+  var PY = function (n, s, r, kg) { return E(n, s, r, 90, kg, { rt: '90-120″' }); };
+  var O2 = function (n, s, r, kg, o) { return E(n, s, r, 60, kg, o); };
+  var F = function (n) { return E(n, 1, '50', 60, '', { rt: '60-75″', extra: '25+5+5+5+5+5' }); };
+
+  var PLAN_LUI = [
+    { id: 1, name: 'Full Body', target: 5, blurb: 'Per rimettersi in forma: 3 serie da 12-15 o da 8-10, poi il circuito crossfit.', sessions: [
+      { id: 'fb1', label: 'Full Body 1', tag: '3 × 12-15', ex: [
+        P1('Leg Press', '50'), P1('Affondi con manubri', '6'), P1('Stacchi', '30'), P1('Pulley basso', '35'),
+        P1('Panca piana', '(20)+30'), P1('Lento avanti con bilanciere', '(20)+5'), P1('Tricipiti ai cavi push down', '10'), P1('Hammer curl manubri', '9'),
+        N('HIIT', '10 minuti su una macchina a piacere.') ] },
+      { id: 'fb2', label: 'Full Body 2', tag: '3 × 8-10', ex: [
+        P2('Squat bilanciere', '(20)+20'), P2('Calf machine', '25'), P2('Trazioni', '50'), P2('Panca inclinata bilanciere', '(20)+20'),
+        P2('Croci/Piegamenti', ''), P2('Alzate laterali', '6'), E('Push up tra panchette', 3, '8-10', 90, '', { rt: '90-120″', bw: 1 }), P2('Curl EZ Scott', ''),
+        N('HIIT', '10 minuti su una macchina a piacere.') ] },
+      { id: 'cf', label: 'Crossfit', tag: '2 circuiti', ex: [
+        C('Primo circuito a corpo libero', 3, 60, ['Squat a corpo libero × 10', 'Piegamenti × 10', 'Affondi laterali × 10 (ogni gamba)', 'Affondi frontali × 10 (ogni gamba)', 'Mountain climbers × 10 (ogni gamba)']),
+        C('Secondo circuito con i pesi', 4, 120, ['20 shoulder press bilanciere (variante manubrio o kettlebell)', '15 burpees', '10 box jumps (variante jump step)', '20 spider crunches', '10 swing kettlebell (variante stacchi gambe tese o hip thrust a terra)']) ] }
+    ] },
+    { id: 2, name: 'Piramidali', target: 4, blurb: 'Serie piramidali con carico che sale: 90-120″ di recupero, 60″ per le altre.', sessions: [
+      { id: 'a', label: 'Allenamento A', tag: 'gambe e spalle', ex: [
+        PY('Squat libero con bilanciere', 4, '12-10-8-6', '20(+20)'), PY('Pressa orizzontale/Affondi', 4, '15-10-5-20', '6'), O2('Leg extension singola', 3, '12', '25'),
+        O2('Leg curl macchina', 2, '10', ''), O2('Polpacci alla pressa', 3, '20', '80'), PY('Military press bilanciere', 4, '12-10-8-6', ''),
+        O2('Alzate frontali disco', 3, '12', '10'), O2('Alzate laterali con manubri', 3, '8', '7'),
+        N('Finale: addominali o HIIT, 10 minuti', 'Addominali:\n- Crunch 3 × MAX\n- Plank 3 serie a massima tenuta\n- Crunch ai cavi 3 × 15\nHIIT (15-60″ di lavoro, 15-30″ di recupero):\n- Burpees\n- Push up\n- Squat a corpo libero\n- Affondi\n- Mountain climber\n- Plank\n- Side plank\n- Crunch\n- Russian twist') ] },
+      { id: 'b', label: 'Allenamento B', tag: 'schiena e tricipiti', ex: [
+        O2('Stacchi con bilanciere', 4, '5', '30(+20)'), PY('Pulley al cavo basso con triangolo', 4, '20-12-8-8', '30'), O2('Lat machine presa a V stretta', 3, '10', '35'),
+        O2('Pullover su panca con manubrio', 3, '15', ''), PY('Panca piana bilanciere presa stretta', 4, '6-8-10-12', '40(+20)'), O2('French press bilanciere EZ', 3, '12', '10'),
+        O2('Push down ai cavi presa inversa', 3, '10', '10'),
+        N('Finale: addominali o HIIT, 10 minuti', 'Addominali:\n- Crunch 3 × MAX\n- Plank 3 serie a massima tenuta\n- Crunch ai cavi 3 × 15\nHIIT (15-60″ di lavoro, 15-30″ di recupero):\n- Burpees\n- Push up\n- Squat a corpo libero\n- Affondi\n- Mountain climber\n- Plank\n- Side plank\n- Crunch\n- Russian twist') ] },
+      { id: 'c', label: 'Allenamento C', tag: 'petto e bicipiti', ex: [
+        PY('Panca inclinata bilanciere', 4, '12-10-8-6', '20'), PY('Panca piana bilanciere', 3, '6-10-15', '(20)30'), E('Push-up tra panchette', 2, 'MAX', 60, '', { bw: 1 }),
+        O2('Croci ai cavi alti', 2, '10', ''), PY('Curl con bilanciere EZ su panca Scott', 4, '15-10-8-6', '10'), O2('Zottman curl con manubri', 3, '12', '8'),
+        O2('Curl ai cavi', 3, '12', '10'),
+        N('Finale: addominali o HIIT, 10 minuti', 'Addominali:\n- Crunch 3 × MAX\n- Plank 3 serie a massima tenuta\n- Crunch ai cavi 3 × 15\nHIIT (15-60″ di lavoro, 15-30″ di recupero):\n- Burpees\n- Push up\n- Squat a corpo libero\n- Affondi\n- Mountain climber\n- Plank\n- Side plank\n- Crunch\n- Russian twist') ] }
+    ]},
+    { id: 3, name: 'Serie da 50', target: 3, blurb: 'Una sola serie da 50 ripetizioni per esercizio, spezzata 25+5+5+5+5+5, recupero 60-75″.', sessions: [
+      { id: 'a', label: 'Allenamento A', tag: '8 esercizi', ex: [
+        F('Squat libero con bilanciere'), F('Affondi camminati con manubri'), F('Leg extension/Front squat'), F('Leg curl'), F('Calf'), F('Alzate frontali con disco'), F('Military press bilanciere'), F('Tirate ai cavi posteriori/Alzate posteriori a 90'),
+        N('Finale: addominali o HIIT, 10 minuti', 'Addominali:\n- Crunch 3 × MAX\n- Plank 3 serie a massima tenuta\n- Crunch ai cavi 3 × 15\nHIIT (15-60″ di lavoro, 15-30″ di recupero):\n- Burpees\n- Push up\n- Squat a corpo libero\n- Affondi\n- Mountain climber\n- Plank\n- Side plank\n- Crunch\n- Russian twist') ] },
+      { id: 'b', label: 'Allenamento B', tag: '6 esercizi', ex: [
+        F('Rematore manubrio'), F('Trazioni assistite/Lat machine presa larga'), F('Pulley'), F('Scrollate manubri'), F('Hammer curl manubri'), F('Panca Scott bilanciere EZ/Curl con bilanciere EZ in piedi'),
+        N('Finale: addominali o HIIT, 10 minuti', 'Addominali:\n- Crunch 3 × MAX\n- Plank 3 serie a massima tenuta\n- Crunch ai cavi 3 × 15\nHIIT (15-60″ di lavoro, 15-30″ di recupero):\n- Burpees\n- Push up\n- Squat a corpo libero\n- Affondi\n- Mountain climber\n- Plank\n- Side plank\n- Crunch\n- Russian twist') ] },
+      { id: 'c', label: 'Allenamento C', tag: '6 esercizi', ex: [
+        F('Panca inclinata bilanciere'), F('Panca piana bilanciere'), F('Croci ai cavi'), E('Push-up tra panchette', 1, '50', 60, '', { rt: '60-75″', extra: '25+5+5+5+5+5', bw: 1 }), F('Pushdown ai cavi'), F('French press bilanciere EZ/French press manubri'),
+        N('Finale: addominali o HIIT, 10 minuti', 'Addominali:\n- Crunch 3 × MAX\n- Plank 3 serie a massima tenuta\n- Crunch ai cavi 3 × 15\nHIIT (15-60″ di lavoro, 15-30″ di recupero):\n- Burpees\n- Push up\n- Squat a corpo libero\n- Affondi\n- Mountain climber\n- Plank\n- Side plank\n- Crunch\n- Russian twist') ] }
+    ] },
+    { id: 4, name: 'Forza e volume', target: 5, blurb: 'Quattro allenamenti con superserie, ripetizioni extra e tempi di contrazione. Da decidere quando sarai più in forma.', sessions: [
+      { id: 'a', label: 'Allenamento A', tag: 'gambe e spalle', ex: [
+        E('Front squat bilanciere', 5, '6', 90, ''), E('Affondi singoli al multipower', 3, '8 per gamba', 60, ''), E('Leg extension machine', 4, '10 + 6', 90, ''), E('Leg curl macchina', 3, '8 + 8', 90, ''),
+        E('Calf press', 4, '8', 90, '', { extra: '2″ di contrazione' }), E('Arnold press/Military press bilanciere', 4, '6', 120, ''), E('Alzate laterali + alzate frontali disco', 4, '10', 75, '', { extra: 'superserie' }),
+        N('Finale: addominali o HIIT, 10-15 minuti', 'Addominali:\n- Crunch 3 × MAX\n- Plank 3 serie a massima tenuta\n- Crunch ai cavi 3 × 15\nHIIT (15-60″ di lavoro, 15-30″ di recupero):\n- Burpees\n- Push up\n- Squat a corpo libero\n- Affondi\n- Mountain climber\n- Plank\n- Side plank\n- Crunch\n- Russian twist') ] },
+      { id: 'b', label: 'Allenamento B', tag: 'schiena e braccia', ex: [
+        E('Stacchi bilanciere', 4, '6', 120, ''), E('Rematore bilanciere/Rematore T-bar', 4, '8', 90, ''), E('Trazioni', 4, 'MAX', 75, ''), E('Pulley cavo basso con triangolo', 3, '10 + 10', 50, ''),
+        E('Zottman curl con manubri', 3, '10 + 8', 60, ''), E('Panca piana bilanciere stretta', 4, '8', 90, ''), E('Tricipiti ai cavi pushdown + bicipiti ai cavi bassi', 4, '10', 45, '', { extra: 'superserie' }),
+        N('Finale: addominali o HIIT, 10-15 minuti', 'Addominali:\n- Crunch 3 × MAX\n- Plank 3 serie a massima tenuta\n- Crunch ai cavi 3 × 15\nHIIT (15-60″ di lavoro, 15-30″ di recupero):\n- Burpees\n- Push up\n- Squat a corpo libero\n- Affondi\n- Mountain climber\n- Plank\n- Side plank\n- Crunch\n- Russian twist') ] },
+      { id: 'c', label: 'Allenamento C', tag: 'spalle e petto', ex: [
+        E('Arnold press/Military press bilanciere', 4, '6', 120, ''), E('Alzate laterali + alzate frontali disco', 4, '10', 75, '', { extra: 'superserie' }), E('Alzate a 90 gradi', 3, '10', 60, '', { extra: 'negativa lenta' }),
+        E('Panca piana con bilanciere', 4, '6', 120, ''), E('Panca inclinata con manubri', 3, '8 + 8', 75, '', { extra: 'stripping' }), E('Pushup tra panchette', 2, '15', 60, '', { bw: 1 }),
+        E('Croci ai cavi', 3, 'MAX', 75, '', { extra: 'TUT' }),
+        N('Finale: addominali o HIIT, 10-15 minuti', 'Addominali:\n- Crunch 3 × MAX\n- Plank 3 serie a massima tenuta\n- Crunch ai cavi 3 × 15\nHIIT (15-60″ di lavoro, 15-30″ di recupero):\n- Burpees\n- Push up\n- Squat a corpo libero\n- Affondi\n- Mountain climber\n- Plank\n- Side plank\n- Crunch\n- Russian twist') ] },
+      { id: 'd', label: 'Allenamento D', tag: 'braccia e addome', ex: [
+        E('Curl EZ in piedi', 4, '10', 75, '', { extra: '2″ di contrazione' }), E('Zottman curl con manubri', 3, '10 + 8', 60, ''), E('Panca piana bilanciere stretta', 4, '8', 90, ''),
+        E('French press EZ', 3, '10', 90, '', { extra: '2″ di contrazione' }), E('Tricipiti ai cavi pushdown + bicipiti ai cavi bassi', 4, '10', 45, '', { extra: 'superserie' }),
+        E('Plank spider', 4, '10 per lato', 60, '', { bw: 1 }), E('Crunch ai cavi', 3, '20', 60, ''), E('Plank', 1, '5 minuti', 60, '', { bw: 1 }),
+        N('Finale: addominali o HIIT, 10-15 minuti', 'Addominali:\n- Crunch 3 × MAX\n- Plank 3 serie a massima tenuta\n- Crunch ai cavi 3 × 15\nHIIT (15-60″ di lavoro, 15-30″ di recupero):\n- Burpees\n- Push up\n- Squat a corpo libero\n- Affondi\n- Mountain climber\n- Plank\n- Side plank\n- Crunch\n- Russian twist') ] }
+    ] }
+  ];
+  var F2 = function (n, s, r, kg, o) { o = o || {}; return E(n, s, r, 90, kg, o); };
+  var PLAN_LEI = [
+    { id: 1, name: 'La mia scheda', target: 4, blurb: 'Tre giorni a rotazione: glutei e upper body, gambe posteriori e core, glutei e braccia.', sessions: [
+      { id: 'a', label: 'Giorno A', tag: 'glutei e upper body', ex: [
+        F2('Hip Thrust', 4, '10', '25'), F2('Abductor machine', 3, '15', '36'), F2('Kickback ai cavi', 3, '15 per lato', '9'),
+        F2('Lat machine presa larga', 4, '10', '23'), F2('Push up', 3, '12', '', { bw: 1 }) ] },
+      { id: 'b', label: 'Giorno B', tag: 'gambe posteriori e core', ex: [
+        F2('RDL', 4, '10', '10', { extra: 'kg per mano' }), F2('Back Extension', 4, '10', '14'), F2('Leg curl (femorali)', 4, '10', '36'),
+        E('Addominali', 1, '100', 60, '', { bw: 1 }), F2('Rematore', 4, '10-12', '23') ] },
+      { id: 'c', label: 'Giorno C', tag: 'glutei e braccia', ex: [
+        F2('Affondi bulgari', 4, '10 per lato', '6'), F2('Hip Thrust', 4, '12', '25'), F2('Curl (bicipiti)', 3, '10-12', '3'),
+        F2('French press (tricipiti)', 3, '10-12', '3'), F2('Trazioni', 3, 'da definire', '32.2') ] }
+    ] }
+  ];
+  var PROFILES = [{ id: 'lui', name: 'Michele', plan: PLAN_LUI }, { id: 'lei', name: 'Vale Chela', plan: PLAN_LEI }];
+  var prof = 'lui', PHASES = PLAN_LUI;
+  var COLORS = ['var(--red)', 'var(--orange)', 'var(--green)', 'var(--blue)'];
+  var SEED = {}, NAMES = {};
+  function buildIndex() {
+    SEED = {}; NAMES = {};
+    PHASES.forEach(function (p) { p.sessions.forEach(function (x) { x.ex.forEach(function (e) { if (e.note || e.circuit) return; e.key = slug(e.n || 'esercizio'); if (e.key) { NAMES[e.key] = e.n; if (e.kg && !(e.key in SEED)) SEED[e.key] = e.kg; } }); }); });
+  }
+  buildIndex();
+  var keyFor = function (id) { return id === 'lui' ? 'gym-state' : 'gym-state-lei'; };
+  var loadedProf = null;
+  var SK = function () { return keyFor(prof); };
+  var DK = function () { return prof === 'lui' ? 'gym-draft' : 'gym-draft-lei'; };
+
+  /* ---------- Stato e salvataggio ---------- */
+  var DEF = function () { return { phase: 1, weeks: { 1: 1, 2: 1, 3: 1, 4: 1 }, loads: {}, history: [], plan: null, lastBackup: '', updatedAt: 0, resetAt: 0 }; };
+  var state = DEF();
+  var store = { mode: 'local', ref: null };
+  var view = 'profiles', cur = null, draft = null, statusMsg = '';
+  var lsGet = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  var lsSet = function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} };
+  var today = function () { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  var fmt = function (iso) { var p = iso.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }); };
+  var clone = function (o) { return JSON.parse(JSON.stringify(o)); };
+
+  function merge(d) {
+    if (!d) return;
+    d = clone(d);
+    if (d.phase >= 1) state.phase = d.phase;
+    if (Array.isArray(d.plan) && d.plan.length) state.plan = d.plan;
+    if (typeof d.lastBackup === 'string') state.lastBackup = d.lastBackup;
+    if (typeof d.updatedAt === 'number') state.updatedAt = d.updatedAt;
+    if (typeof d.resetAt === 'number') state.resetAt = d.resetAt;
+    if (d.weeks) for (var k in d.weeks) state.weeks[k] = d.weeks[k];
+    if (d.loads) state.loads = d.loads;
+    if (Array.isArray(d.history)) state.history = d.history;
+  }
+  async function load() {
+    try {
+      var c = window.claude;
+      if (c && c.use) {
+        var user = await c.use('user'), db = await c.use('db');
+        var uid = user ? await user.id() : null;
+        if (db && uid) {
+          store.ref = db.doc('data/users/' + uid + '/app');
+          var snap = await store.ref.get();
+          if (snap.exists) merge(snap.data());
+          store.mode = 'cloud';
+        }
+      }
+    } catch (e) { store.mode = 'local'; }
+    if (store.mode !== 'cloud') { var raw = lsGet(SK()); if (raw) { try { merge(JSON.parse(raw)); } catch (e) {} } }
+    var dr = lsGet(DK());
+    if (dr) { try { var o = JSON.parse(dr); if (o && o.date === today()) draft = o; } catch (e) {} }
+  }
+  var saveTimer = null, saving = Promise.resolve();
+  function touch() { state.updatedAt = Math.max(Date.now(), (state.updatedAt || 0) + 1); }
+  function queueSave() { touch(); clearTimeout(saveTimer); saveTimer = setTimeout(flush, 600); }
+  function flush(noSync) {
+    clearTimeout(saveTimer);
+    saving = saving.then(async function () {
+      if (loadedProf !== prof) return;
+      var body = clone(state);
+      lsSet(SK(), JSON.stringify(body));
+      if (store.mode === 'cloud') {
+        try { await store.ref.set(body); setStatus(''); } catch (e) { setStatus('Salvataggio non riuscito. Riprovo al prossimo tocco.'); }
+      }
+      if (!noSync) scheduleSync();
+    });
+    return saving;
+  }
+  function setStatus(m) { statusMsg = m; var el = document.getElementById('status'); if (el) el.textContent = m; }
+  function saveDraft() { if (draft) lsSet(DK(), JSON.stringify(draft)); }
+
+  /* ---------- Utilità ---------- */
+  var getLoad = function (key) { return key in state.loads ? state.loads[key] : (SEED[key] || ''); };
+  var phaseObj = function () { return PHASES.filter(function (p) { return p.id === state.phase; })[0] || PHASES[0]; };
+  var phNum = function (p) { return PHASES.indexOf(p) + 1; };
+  var wkOf = function (p) { return state.weeks[p.id] || 1; };
+  function lastDone(ph, sid) { for (var i = state.history.length - 1; i >= 0; i--) { var h = state.history[i]; if (h.ph === ph && h.s === sid) return h.d; } return null; }
+  function toast(m) { var t = document.getElementById('toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { t.hidden = true; }, 2200); }
+
+  /* ---------- Timer di recupero ---------- */
+  var timer = { end: 0, iv: null, actx: null };
+  function beep() {
+    try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
+    try {
+      var a = timer.actx; if (!a) return;
+      [0, 0.25, 0.5].forEach(function (t) { var o = a.createOscillator(), g = a.createGain(); o.frequency.value = 880; g.gain.value = 0.15; o.connect(g); g.connect(a.destination); o.start(a.currentTime + t); o.stop(a.currentTime + t + 0.15); });
+    } catch (e) {}
+  }
+  function startTimer(sec) {
+    try { if (!timer.actx) timer.actx = new (window.AudioContext || window.webkitAudioContext)(); if (timer.actx.state === 'suspended') timer.actx.resume(); } catch (e) {}
+    timer.end = Date.now() + sec * 1000; timer.fired = false;
+    clearInterval(timer.iv); timer.iv = setInterval(tick, 250); renderTimer(); tick();
+  }
+  function stopTimer() { clearInterval(timer.iv); timer.end = 0; document.getElementById('timer').hidden = true; }
+  function renderTimer() {
+    var el = document.getElementById('timer'); el.hidden = false; el.className = 'timer';
+    el.innerHTML = '<div class="in"><div class="t"><small>Recupero</small><span id="tl">0:00</span></div><button data-a="t-15" aria-label="Meno 15 secondi">−15″</button><button data-a="t+15" aria-label="Più 15 secondi">+15″</button><button data-a="t-skip">Salta</button></div>';
+  }
+  function tick() {
+    var left = Math.ceil((timer.end - Date.now()) / 1000), tl = document.getElementById('tl'), el = document.getElementById('timer');
+    if (!tl) return;
+    if (left <= 0) {
+      tl.textContent = 'Via!'; el.classList.add('end'); var sk = el.querySelector('[data-a="t-skip"]'); if (sk) sk.textContent = 'Chiudi';
+      if (!timer.fired) { timer.fired = true; beep(); }
+      if (left < -4) stopTimer();
+      return;
+    }
+    tl.textContent = Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0');
+  }
+
+  /* ---------- Viste ---------- */
+  function nav() {
+    document.querySelector('.nav').hidden = (view === 'profiles' || view === 'sync');
+    var items = [['home', 'Oggi'], ['phases', 'Fasi'], ['history', 'Storico']];
+    document.getElementById('nav').innerHTML = items.map(function (i) {
+      var on = (view === i[0]) || (view === 'workout' && i[0] === 'home') || (view.indexOf('ed') === 0 && i[0] === 'phases');
+      return '<button data-a="nav" data-v="' + i[0] + '"' + (on ? ' aria-current="page"' : '') + '>' + i[1] + '</button>';
+    }).join('');
+  }
+  function storedState(id) {
+    if (loadedProf === id) return state;
+    try { var raw = lsGet(keyFor(id)); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+  }
+  function peek(p) {
+    var d = storedState(p.id), h = d && d.history || [];
+    return h.length ? 'Ultimo allenamento ' + fmt(h[h.length - 1].d) + ' · ' + h.length + ' fatti' : 'Nessun allenamento ancora';
+  }
+  function profilesView() {
+    var out = '<div><div class="eyebrow">Scheda Palestra</div><h1>Chi si allena?</h1></div>';
+    PROFILES.forEach(function (p, i) {
+      out += '<button class="card sess" style="--c:' + COLORS[i % 4] + '" data-a="profile" data-id="' + p.id + '"><span class="bar"></span><span><h3>' + esc(p.name) + '</h3><span class="meta">' + esc(peek(p)) + '</span></span><span class="go" aria-hidden="true">›</span></button>';
+    });
+    var d = daysSince(lsGet('gym-last-backup')), stale = PROFILES.some(function (p) { var st = storedState(p.id); return st && st.history && st.history.length; }) && (d === null || d >= 7);
+    var sc = syncCfg();
+    out += '<h2>Sincronizzazione</h2><div class="note"><b>' + (sc ? 'Attiva' : 'Non attiva') + '</b><br><span class="syncmsg">' + esc(syncLabel()) + '</span><div class="row" style="margin-top:10px"><button class="btn small" data-a="sync-open">' + (sc ? 'Impostazioni' : 'Imposta') + '</button>' + (sc ? '<button class="btn small ghost" data-a="sync-now">Sincronizza ora</button>' : '') + '</div></div>';
+    out += '<h2>Backup</h2><div class="note' + (stale ? ' nag' : '') + '"><b>Salva tutto</b><br>' + esc(backupLabel()) + ' Il file contiene entrambi i profili: schede con le modifiche agli esercizi, carichi, storico, fase e settimane.<div class="row" style="margin-top:10px"><button class="btn small" data-a="export">Salva backup</button><label class="btn small ghost filebtn">Recupera da backup<input type="file" id="impfile" accept="application/json,.json"></label></div></div>';
+    if (pendingImport) {
+      out += '<div class="card phase"><div><b>Recuperare dal backup?</b></div><div class="muted small">Sostituisce questi dati con quelli del file:</div><ul class="items">' + PROFILES.filter(function (p) { return pendingImport.profiles[p.id]; }).map(function (p) {
+        var st = pendingImport.profiles[p.id].state, h = st.history || [];
+        return '<li><b>' + esc(p.name) + '</b>: ' + st.plan.reduce(function (n, ph) { return n + ph.sessions.length; }, 0) + ' allenamenti in scheda, ' + h.length + ' sessioni nello storico</li>';
+      }).join('') + '</ul><div class="row"><button class="btn small" data-a="imp-yes">Sì, recupera</button><button class="btn small ghost" data-a="imp-no">Annulla</button></div></div>';
+    }
+    return out;
+  }
+  function home() {
+    var p = phaseObj(), wk = wkOf(p);
+    var order = p.sessions.map(function (s, i) { return { s: s, i: i, last: lastDone(p.id, s.id) }; });
+    var rec = order.slice().sort(function (a, b) { return (a.last || '') < (b.last || '') ? -1 : (a.last || '') > (b.last || '') ? 1 : a.i - b.i; })[0] || { i: -1 };
+    var out = '<button class="back" data-a="profiles">‹ Cambia profilo (' + esc(PROFILES.filter(function (x) { return x.id === prof; })[0].name) + ')</button><div class="top"><div><div class="eyebrow">Fase ' + phNum(p) + ' · ' + esc(p.name) + ' · Settimana ' + wk + '</div><h1>Scegli l’allenamento</h1></div></div>';
+    out += nagHTML();
+    order.forEach(function (o) {
+      var done = o.s.ex.filter(function (e) { return !e.note; }).length;
+      out += '<button class="card sess" style="--c:' + COLORS[o.i % 4] + '" data-a="open" data-i="' + o.i + '"><span class="bar"></span><span><h3>' + esc(o.s.label) + '</h3><span class="meta">' + esc(o.s.tag) + ' · ' + done + (o.s.ex[0] && o.s.ex[0].circuit ? ' circuiti' : ' esercizi') + ' · ' + (o.last ? 'ultimo ' + fmt(o.last) : 'mai fatto') + '</span></span>' +
+        (o.i === rec.i ? '<span class="badge">Oggi</span>' : '<span class="go" aria-hidden="true">›</span>') + '</button>';
+    });
+    if (!order.length) out += '<div class="note">Questa fase non ha ancora allenamenti. Aggiungili da Fasi › Modifica.</div>';
+        out += '<div class="status" id="status">' + esc(statusMsg || (store.mode === 'cloud' ? '' : 'Dati salvati solo su questo dispositivo.')) + '</div>';
+    return out;
+  }
+  function noteText(t) {
+    var out = '', inList = false;
+    t.split('\n').forEach(function (l) {
+      if (l.indexOf('- ') === 0) { if (!inList) { out += '<ul class="nl">'; inList = true; } out += '<li>' + esc(l.slice(2)) + '</li>'; }
+      else { if (inList) { out += '</ul>'; inList = false; } out += '<div class="sub">' + esc(l) + '</div>'; }
+    });
+    return (inList ? out + '</ul>' : out);
+  }
+  function workout() {
+    var p = phaseObj(), s = p.sessions[cur], ci = cur % 4;
+    var sets = (draft && draft.sid === p.id + s.id && draft.sets) || {};
+    var out = '<button class="back" data-a="back">‹ Indietro</button><div><div class="eyebrow">Fase ' + phNum(p) + ' · settimana ' + wkOf(p) + '</div><h1>' + esc(s.label) + '</h1></div>';
+    var total = 0, doneN = 0;
+    s.ex.forEach(function (e, i) {
+      if (e.note) { out += '<div class="note"><b>' + esc(e.title) + '</b><br>' + noteText(e.text) + '</div>'; return; }
+      var arr = sets[i] || [], d = 0; for (var k = 0; k < e.s; k++) if (arr[k]) d++;
+      total += e.s; doneN += d;
+      var chips = ''; for (var j = 0; j < e.s; j++) chips += '<button class="set" data-a="set" data-i="' + i + '" data-j="' + j + '" aria-pressed="' + (arr[j] ? 'true' : 'false') + '" aria-label="' + (e.circuit ? 'Giro ' : 'Serie ') + (j + 1) + '">' + (j + 1) + '</button>';
+      if (e.circuit) {
+        out += '<div class="card ex' + (d === e.s ? ' alldone' : '') + '" style="--c:' + COLORS[ci] + '" id="ex' + i + '"><div class="exname">' + esc(e.label) + '</div><div class="scheme">' + e.s + ' giri · pausa ' + (e.rest / 60) + ' min tra un giro e l’altro</div><ul class="items">' + e.items.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul><div class="sets">' + chips + '</div></div>';
+      } else {
+        out += '<div class="card ex' + (d === e.s ? ' alldone' : '') + '" style="--c:' + COLORS[ci] + '" id="ex' + i + '"><div class="exhead"><div><div class="exname">' + esc(e.n) + '</div><div class="scheme">' + e.s + ' × ' + esc(e.r) + (e.extra ? ' · ' + esc(e.extra) : '') + ' · rec ' + esc(e.rt || e.rest + '″') + '</div></div>' +
+          (e.bw ? '' : '<label class="kgbox"><input class="kg" data-key="' + e.key + '" value="' + esc(getLoad(e.key)) + '" placeholder="kg" autocomplete="off" aria-label="Carico in kg per ' + esc(e.n) + '"><span class="unit">kg</span></label>') + '</div><div class="sets">' + chips + '</div></div>';
+      }
+    });
+    out += '<div class="muted small" id="count">' + doneN + ' di ' + total + ' serie fatte</div><button class="btn" data-a="finish">Concludi allenamento</button><div class="status" id="status">' + esc(statusMsg) + '</div>';
+    return out;
+  }
+  function phases() {
+    var out = '<div><div class="eyebrow">Le tue fasi</div><h1>Fasi</h1></div><p class="muted small" style="margin:0">Le settimane consigliate sono indicative. Resta nella fase finché i carichi salgono e le serie escono pulite, poi passa alla successiva.</p>';
+    PHASES.forEach(function (p, idx) {
+      var wk = wkOf(p), act = state.phase === p.id, dots = '', nx = PHASES[idx + 1];
+      for (var w = 1; w <= Math.max(p.target, wk); w++) dots += '<span class="dot' + (w <= wk ? ' on' : '') + (w > p.target ? ' extra' : '') + '"></span>';
+      out += '<div class="card phase' + (act ? ' active' : '') + '"><div class="phasehead"><h2>' + (idx + 1) + '. ' + esc(p.name) + '</h2>' + (act ? '<span class="badge">Attiva</span>' : '') + '</div><div class="muted small">' + esc(p.blurb || '') + '</div>' +
+        '<div class="row"><div class="stepper"><button class="sq" data-a="wk-" data-p="' + p.id + '" aria-label="Una settimana in meno">−</button><span class="n" aria-label="Settimana ' + wk + '">' + wk + '</span><button class="sq" data-a="wk+" data-p="' + p.id + '" aria-label="Una settimana in più">+</button></div><span class="muted small">settimana · consigliate ' + p.target + (wk > p.target ? ' (le hai superate, va bene)' : '') + '</span></div><div class="dots" aria-hidden="true">' + dots + '</div>' +
+        '<div class="row">' + (act ? '' : '<button class="btn small" data-a="activate" data-p="' + p.id + '">Passa a questa fase</button>') + (act && nx ? '<button class="btn small ghost" data-a="activate" data-p="' + nx.id + '">Vai alla fase ' + (idx + 2) + '</button>' : '') + '<button class="btn small ghost" data-a="ed-phase" data-id="' + p.id + '">Modifica</button></div></div>';
+    });
+    out += '<button class="btn" data-a="add-phase">Aggiungi fase</button>';
+    out += '<p class="muted small" style="margin:0">Il backup e il recupero dei dati si fanno dalla schermata iniziale (Cambia profilo).</p>';
+    return out;
+  }
+  var progKey = '', askReset = false, armed = '', armT = null, pendingImport = null, editCtx = {};
+  function history() {
+    var keys = {}; state.history.forEach(function (h) { for (var k in (h.l || {})) keys[k] = 1; });
+    var list = Object.keys(keys).sort(function (a, b) { return (NAMES[a] || a).localeCompare(NAMES[b] || b, 'it'); });
+    if (!progKey || !keys[progKey]) progKey = list[0] || '';
+    var out = '<div><div class="eyebrow">Allenamenti fatti</div><h1>Storico</h1></div>';
+    if (!state.history.length) return out + '<div class="note">Nessun allenamento salvato. Quando concludi un allenamento compare qui, con i kg usati.</div>';
+    if (list.length) {
+      out += '<h2>Progressi</h2><select id="progsel" aria-label="Esercizio">' + list.map(function (k) { return '<option value="' + k + '"' + (k === progKey ? ' selected' : '') + '>' + esc(NAMES[k] || k) + '</option>'; }).join('') + '</select><div class="card prog">';
+      state.history.slice().reverse().forEach(function (h) { if (h.l && h.l[progKey]) out += '<span class="muted">' + fmt(h.d) + '</span><span class="v">' + esc(h.l[progKey]) + ' kg</span>'; });
+      out += '</div>';
+    }
+    out += '<h2>Sessioni</h2>';
+    state.history.slice().reverse().slice(0, 60).forEach(function (h) {
+      out += '<div class="card hist"><span><b>' + esc(h.sl) + '</b><br><span class="muted small">' + esc(h.pn || ('Fase ' + h.ph)) + ' · settimana ' + h.wk + '</span></span><span style="text-align:right"><b>' + fmt(h.d) + '</b><br><span class="muted small">' + h.n + '/' + h.t + ' serie</span></span></div>';
+    });
+    if (askReset) out += '<div class="card phase"><div><b>Azzerare lo storico?</b></div><div class="muted small">Cancella tutte le sessioni e i progressi dei kg. Fase, settimane e ultimi carichi restano.</div><div class="row"><button class="btn small" data-a="reset-yes">Sì, azzera</button><button class="btn small ghost" data-a="reset-no">Annulla</button></div></div>';
+    else out += '<button class="btn ghost" data-a="reset-ask">Azzera storico</button>';
+    return out;
+  }
+  /* ---------- Editor della scheda ---------- */
+  var getPhase = function (id) { return PHASES.filter(function (p) { return p.id === id; })[0]; };
+  function fld(label, scope, f, val, o) {
+    o = o || {};
+    return '<label class="fld"><span>' + label + '</span>' + (o.area
+      ? '<textarea class="txt" rows="' + (o.rows || 3) + '" data-scope="' + scope + '" data-f="' + f + '">' + esc(val) + '</textarea>'
+      : '<input class="txt" data-scope="' + scope + '" data-f="' + f + '" value="' + esc(val) + '"' + (o.num ? ' inputmode="numeric" data-num="1"' : '') + ' autocomplete="off">') + '</label>';
+  }
+  function mv(k, i, n) {
+    return '<button class="sq" data-a="mv" data-k="' + k + '" data-i="' + i + '" data-d="-1" aria-label="Sposta su"' + (i === 0 ? ' disabled' : '') + '>↑</button><button class="sq" data-a="mv" data-k="' + k + '" data-i="' + i + '" data-d="1" aria-label="Sposta giù"' + (i === n - 1 ? ' disabled' : '') + '>↓</button>';
+  }
+  function delBtn(k, i, label) {
+    return '<button class="btn small ghost danger" data-a="del" data-k="' + k + '" data-i="' + i + '">' + (armed === k + ':' + i ? 'Tocca di nuovo per eliminare' : (label || 'Elimina')) + '</button>';
+  }
+  function exSummary(e) {
+    if (e.circuit) return 'Circuito · ' + e.s + ' giri';
+    if (e.note) return 'Nota · ' + (e.title || '');
+    return e.s + ' × ' + (e.r || '') + (e.extra ? ' · ' + e.extra : '');
+  }
+  function edphase() {
+    var p = getPhase(editCtx.p), idx = PHASES.indexOf(p);
+    var out = '<button class="back" data-a="ed-back">‹ Fasi</button><div><div class="eyebrow">Modifica fase</div><h1>' + esc(p.name || 'Fase') + '</h1></div>';
+    out += fld('Nome della fase', 'phase', 'name', p.name) + fld('Settimane consigliate', 'phase', 'target', p.target, { num: 1 }) + fld('Descrizione', 'phase', 'blurb', p.blurb || '', { area: 1, rows: 2 });
+    out += '<h2>Allenamenti</h2>';
+    if (!p.sessions.length) out += '<div class="note">Nessun allenamento. Aggiungine uno qui sotto.</div>';
+    p.sessions.forEach(function (x, i) {
+      var n = x.ex.filter(function (e) { return !e.note; }).length;
+      out += '<div class="card erow"><div class="etxt"><b>' + esc(x.label) + '</b><span class="muted small">' + esc(x.tag || '') + (x.tag ? ' · ' : '') + n + ' voci</span></div><div class="ebtns">' + mv('sess', i, p.sessions.length) + '<button class="btn small ghost" data-a="ed-sess" data-i="' + i + '">Modifica</button>' + delBtn('sess', i) + '</div></div>';
+    });
+    out += '<button class="btn" data-a="add-sess">Aggiungi allenamento</button>';
+    if (PHASES.length > 1) out += '<div class="row">' + delBtn('phase', idx, 'Elimina questa fase') + '</div>';
+    return out;
+  }
+  function edsess() {
+    var p = getPhase(editCtx.p), x = p.sessions[editCtx.s];
+    var out = '<button class="back" data-a="ed-back">‹ ' + esc(p.name) + '</button><div><div class="eyebrow">Modifica allenamento</div><h1>' + esc(x.label || 'Allenamento') + '</h1></div>';
+    out += fld('Nome', 'sess', 'label', x.label) + fld('Descrizione breve (opzionale)', 'sess', 'tag', x.tag || '');
+    out += '<h2>Esercizi</h2>';
+    if (!x.ex.length) out += '<div class="note">Nessun esercizio. Aggiungine uno qui sotto.</div>';
+    x.ex.forEach(function (e, i) {
+      out += '<div class="card erow"><div class="etxt"><b>' + esc(e.circuit ? e.label : e.note ? (e.title || 'Nota') : e.n) + '</b><span class="muted small">' + esc(exSummary(e)) + '</span></div><div class="ebtns">' + mv('ex', i, x.ex.length) + '<button class="btn small ghost" data-a="ed-ex" data-i="' + i + '">Modifica</button>' + delBtn('ex', i) + '</div></div>';
+    });
+    out += '<div class="row"><button class="btn" data-a="add-ex" data-t="ex">Aggiungi esercizio</button><button class="btn ghost" data-a="add-ex" data-t="note">Aggiungi nota</button><button class="btn ghost" data-a="add-ex" data-t="circ">Aggiungi circuito</button></div>';
+    return out;
+  }
+  function edex() {
+    var p = getPhase(editCtx.p), x = p.sessions[editCtx.s], e = x.ex[editCtx.e];
+    var out = '<button class="back" data-a="ed-back">‹ ' + esc(x.label) + '</button><div><div class="eyebrow">Modifica ' + (e.circuit ? 'circuito' : e.note ? 'nota' : 'esercizio') + '</div></div>';
+    if (e.circuit) {
+      out += fld('Nome del circuito', 'ex', 'label', e.label) + fld('Giri', 'ex', 's', e.s, { num: 1 }) + fld('Pausa tra i giri (secondi)', 'ex', 'rest', e.rest, { num: 1 }) + fld('Esercizi del circuito (uno per riga)', 'ex', 'itemsText', (e.items || []).join('\n'), { area: 1, rows: 7 });
+    } else if (e.note) {
+      out += fld('Titolo', 'ex', 'title', e.title || '') + fld('Testo', 'ex', 'text', e.text || '', { area: 1, rows: 9 }) + '<div class="muted small">Una voce per riga. Le righe che iniziano con "- " diventano un elenco puntato.</div>';
+    } else {
+      out += fld('Nome', 'ex', 'n', e.n) + fld('Serie', 'ex', 's', e.s, { num: 1 }) + fld('Ripetizioni (es. 10, 12-10-8-6, MAX, 15 per lato)', 'ex', 'r', e.r || '') + fld('Recupero (secondi)', 'ex', 'rest', e.rest, { num: 1 }) +
+        (e.bw ? '' : fld('Carico in kg', 'ex', 'kg', getLoad(slug(e.n || 'esercizio')))) + fld('Nota (es. superserie, 2″ di contrazione)', 'ex', 'extra', e.extra || '') +
+        '<label class="chk"><input type="checkbox" data-scope="ex" data-f="bw"' + (e.bw ? ' checked' : '') + '> Corpo libero, senza carico</label>';
+    }
+    return out;
+  }
+  function editTarget(scope) {
+    var p = getPhase(editCtx.p); if (scope === 'phase') return p;
+    var x = p.sessions[editCtx.s]; if (scope === 'sess') return x;
+    return x.ex[editCtx.e];
+  }
+  function editField(t) {
+    var o = editTarget(t.dataset.scope), f = t.dataset.f;
+    if (!o) return;
+    var v = t.type === 'checkbox' ? t.checked : t.value;
+    if (f === 'itemsText') o.items = v.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+    else if (f === 'kg') { o.kg = v.trim(); var k = slug(o.n || 'esercizio'); o.key = k; if (o.kg) state.loads[k] = o.kg; else delete state.loads[k]; }
+    else if (f === 'bw') o.bw = v ? 1 : 0;
+    else if (t.dataset.num) { o[f] = Math.max(f === 's' || f === 'target' ? 1 : 0, Number(v) || 0); if (f === 'rest') delete o.rt; }
+    else o[f] = v;
+    queueSave();
+  }
+  function doDelete(k, i) {
+    var p = getPhase(editCtx.p);
+    if (k === 'sess') { p.sessions.splice(i, 1); }
+    else if (k === 'ex') { p.sessions[editCtx.s].ex.splice(i, 1); }
+    else if (k === 'phase') { var id = PHASES[i].id; PHASES.splice(i, 1); if (state.phase === id) state.phase = PHASES[0].id; view = 'phases'; }
+    buildIndex(); queueSave(); render(); toast('Eliminato');
+  }
+  function daysSince(iso) {
+    if (!iso) return null;
+    var p = iso.split('-'), t = new Date(+p[0], +p[1] - 1, +p[2]), n = new Date(); n.setHours(0, 0, 0, 0);
+    return Math.max(0, Math.round((n - t) / 86400000));
+  }
+  function backupLabel() {
+    var d = daysSince(lsGet('gym-last-backup'));
+    return d === null ? 'Nessun backup ancora.' : d === 0 ? 'Ultimo backup: oggi.' : d === 1 ? 'Ultimo backup: ieri.' : 'Ultimo backup: ' + d + ' giorni fa.';
+  }
+  function nagHTML() {
+    var d = daysSince(lsGet('gym-last-backup'));
+    if (!state.history.length || (d !== null && d < 7)) return '';
+    return '<div class="note nag"><b>Fai un backup</b><br>' + esc(backupLabel()) + ' Si fa dalla schermata iniziale.<div class="row" style="margin-top:10px"><button class="btn small" data-a="profiles">Vai al backup</button></div></div>';
+  }
+  async function exportData() {
+    await flush();
+    var profs = {};
+    PROFILES.forEach(function (p) { var st = storedState(p.id); if (st) profs[p.id] = { state: clone(st) }; });
+    if (!Object.keys(profs).length) { toast('Non c\u2019è ancora niente da salvare'); return; }
+    var body = JSON.stringify({ app: 'scheda-palestra', v: 2, date: today(), profiles: profs }, null, 1);
+    var name = 'scheda-palestra-backup-' + today() + '.json', done = false;
+    try {
+      var file = new File([body], name, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: 'Backup scheda palestra' }); done = true; }
+        catch (e) { if (e && e.name === 'AbortError') return; }
+      }
+    } catch (e) {}
+    if (!done) {
+      try {
+        var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([body], { type: 'application/json' }));
+        a.download = name; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000); done = true;
+      } catch (e) {}
+    }
+    if (!done) { toast('Non riesco a salvare il backup'); return; }
+    lsSet('gym-last-backup', today()); render(); toast('Backup pronto');
+  }
+  function applyImport() {
+    var pr = pendingImport.profiles; pendingImport = null;
+    clearTimeout(saveTimer); loadedProf = null; state = DEF(); draft = null;
+    PROFILES.forEach(function (p) { if (pr[p.id]) { pr[p.id].state.updatedAt = Date.now(); lsSet(keyFor(p.id), JSON.stringify(pr[p.id].state)); lsSet(p.id === 'lui' ? 'gym-draft' : 'gym-draft-lei', ''); } });
+    lsSet('gym-last-backup', today());
+    render(); toast('Dati recuperati'); scheduleSync();
+  }
+
+  function render() {
+    var el = document.getElementById('app');
+    el.innerHTML = view === 'profiles' ? profilesView() : view === 'home' ? home() : view === 'workout' ? workout() : view === 'phases' ? phases() : view === 'edphase' ? edphase() : view === 'edsess' ? edsess() : view === 'edex' ? edex() : view === 'sync' ? syncView() : history();
+    nav();
+    if (view === 'workout') document.getElementById('app').dataset.v = 'w'; else delete el.dataset.v;
+    var key = view + '|' + JSON.stringify(editCtx) + '|' + cur;
+    if (key !== lastNav) {
+      lastNav = key;
+      if (!popping) { try { window.history.pushState({ view: view, ctx: clone(editCtx), cur: cur }, ''); } catch (e) {} }
+    }
+  }
+  var lastNav = '', popping = false;
+  function onPop(ev) {
+    var st = ev.state;
+    if (st && st.guard) {
+      flush();
+      try { window.history.pushState({ view: 'profiles', ctx: {}, cur: null }, ''); } catch (e) {}
+      document.getElementById('exit').hidden = false;
+      return;
+    }
+    stopTimer(); armed = ''; pendingImport = null;
+    popping = true;
+    if (st && st.view && (st.view === 'profiles' || loadedProf === prof)) { view = st.view; editCtx = st.ctx || {}; cur = st.cur; }
+    else { view = 'profiles'; }
+    try { render(); } finally { popping = false; }
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener('popstate', onPop);
+
+  /* ---------- Sincronizzazione GitHub ---------- */
+  var SYNC_KEY = 'gym-sync', SYNC_FILE = 'scheda-palestra-dati.json';
+  var sync = { busy: false, again: false, timer: null, msg: '', at: null };
+  function syncCfg() { try { var c = JSON.parse(lsGet(SYNC_KEY) || 'null'); return c && c.repo && c.token ? c : null; } catch (e) { return null; } }
+  var utf8b64 = function (str) { var b = new TextEncoder().encode(str), s = ''; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); };
+  var b64utf8 = function (b64) { var s = atob(b64.replace(/\s/g, '')), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return new TextDecoder().decode(b); };
+  var httpErr = function (r) { var e = new Error('http ' + r.status); e.status = r.status; return e; };
+  function canon(o) {
+    if (o === null || typeof o !== 'object') return JSON.stringify(o);
+    if (Array.isArray(o)) return '[' + o.map(canon).join(',') + ']';
+    return '{' + Object.keys(o).sort().map(function (k) { return JSON.stringify(k) + ':' + canon(o[k]); }).join(',') + '}';
+  }
+  var hid = function (e) { return e.id || [e.d, e.ph, e.s, e.t || 0, e.n, e.wk].join('|'); };
+  function mergeStates(a, b) {
+    if (!a) return b ? clone(b) : null;
+    if (!b) return clone(a);
+    var newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b, r = clone(newer);
+    var rs = Math.max(a.resetAt || 0, b.resetAt || 0), seen = {}, h = [];
+    (a.history || []).concat(b.history || []).forEach(function (e) { var k = hid(e); if ((e.t || 0) < rs || seen[k]) return; seen[k] = 1; h.push(e); });
+    h.sort(function (x, y) { return x.d < y.d ? -1 : x.d > y.d ? 1 : (x.t || 0) - (y.t || 0); });
+    r.history = h.slice(-400);
+    if (rs) r.resetAt = rs;
+    return r;
+  }
+  function readLocal(id) { try { var raw = lsGet(keyFor(id)); var o = raw ? JSON.parse(raw) : null; return o && Array.isArray(o.plan) ? o : null; } catch (e) { return null; } }
+  function ghReq(cfg, method, path, body) {
+    var h = { 'Authorization': 'Bearer ' + cfg.token, 'Accept': 'application/vnd.github+json' };
+    if (body) h['Content-Type'] = 'application/json';
+    return fetch('https://api.github.com/repos/' + cfg.repo + path, { method: method, cache: 'no-store', headers: h, body: body ? JSON.stringify(body) : undefined });
+  }
+  function syncErr(e) {
+    var s = e && e.status;
+    if (s === 401) return 'token non valido o scaduto.';
+    if (s === 403) return 'il token non ha i permessi (serve Contents: Read and write) oppure hai superato i limiti di GitHub.';
+    if (s === 404) return 'repository non trovato. Controlla il nome e che il token abbia accesso a quel repository.';
+    if (s === 409 || s === 422) return 'conflitto, riprova tra poco.';
+    return 'nessuna connessione o GitHub non raggiungibile.';
+  }
+  function syncLabel() {
+    var c = syncCfg();
+    if (!c) return 'I dati restano solo su questo telefono. Attiva la sincronizzazione per usarli su più telefoni.';
+    if (sync.msg) return sync.msg;
+    return c.repo + (sync.at ? ' · ultima sincronizzazione alle ' + sync.at.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : ' · in attesa');
+  }
+  function paintSync() { var t = syncLabel(); [].forEach.call(document.querySelectorAll('.syncmsg'), function (el) { el.textContent = t; }); }
+  function scheduleSync() { if (!syncCfg()) return; clearTimeout(sync.timer); sync.timer = setTimeout(syncNow, 3000); }
+  function applyMerged(ch, startUA) {
+    var calm = ['workout', 'edphase', 'edsess', 'edex', 'sync'].indexOf(view) < 0, redo = false;
+    Object.keys(ch).forEach(function (id) {
+      var cur2 = loadedProf === id;
+      if (cur2 && (!calm || state.updatedAt !== startUA)) return;
+      lsSet(keyFor(id), JSON.stringify(ch[id]));
+      if (cur2) {
+        clearTimeout(saveTimer); state = DEF(); merge(ch[id]); PHASES = state.plan; buildIndex();
+        if (!PHASES.some(function (q) { return q.id === state.phase; })) state.phase = PHASES[0].id;
+        redo = true;
+      }
+    });
+    if ((redo || view === 'profiles') && view !== 'sync' && view !== 'workout' && view.indexOf('ed') !== 0) render();
+  }
+  async function syncNow() {
+    var cfg = syncCfg(); if (!cfg) return;
+    if (sync.busy) { sync.again = true; return; }
+    sync.busy = true; sync.msg = 'Sincronizzo…'; paintSync();
+    try {
+      await flush(true);
+      var startUA = state.updatedAt;
+      for (var attempt = 0; attempt < 2; attempt++) {
+        var r = await ghReq(cfg, 'GET', '/contents/' + SYNC_FILE), remote = null, sha = null;
+        if (r.status === 404) { var rr = await ghReq(cfg, 'GET', ''); if (!rr.ok) throw httpErr(rr); }
+        else if (r.ok) { var j = await r.json(); sha = j.sha; remote = JSON.parse(b64utf8(j.content)); }
+        else throw httpErr(r);
+        var rp = (remote && remote.profiles) || {}, out = {}, chLocal = {}, chRemote = false;
+        PROFILES.forEach(function (p) {
+          var loc = readLocal(p.id), e = rp[p.id], rem = e && e.state && Array.isArray(e.state.plan) ? e.state : null;
+          var m = mergeStates(loc, rem); if (!m) return;
+          out[p.id] = { state: m };
+          if (!loc || canon(m) !== canon(loc)) chLocal[p.id] = m;
+          if (!rem || canon(m) !== canon(rem)) chRemote = true;
+        });
+        if (chRemote) {
+          var put = await ghReq(cfg, 'PUT', '/contents/' + SYNC_FILE, { message: 'sync ' + today(), content: utf8b64(JSON.stringify({ app: 'scheda-palestra', v: 3, profiles: out })), sha: sha || undefined });
+          if (put.status === 409 || put.status === 422) { if (attempt === 1) throw httpErr(put); continue; }
+          if (!put.ok) throw httpErr(put);
+        }
+        applyMerged(chLocal, startUA);
+        sync.at = new Date(); sync.msg = '';
+        break;
+      }
+    } catch (e) { sync.msg = 'Sincronizzazione non riuscita: ' + syncErr(e); }
+    sync.busy = false; paintSync();
+    if (sync.again) { sync.again = false; scheduleSync(); }
+  }
+  function syncView() {
+    var c = syncCfg();
+    return '<button class="back" data-a="sync-back">‹ Indietro</button><div><div class="eyebrow">Più telefoni</div><h1>Sincronizzazione</h1></div>' +
+      '<div class="note"><b>Come funziona</b><br>I dati si salvano in un repository GitHub tuo. Sullo stesso repository e con lo stesso token tutti i telefoni vedono la stessa scheda, gli stessi kg e lo stesso storico.</div>' +
+      '<ol class="items"><li>Crea un repository <b>privato</b> per i dati, con un README.</li><li>Crea un token con accesso solo a quel repository e permesso <b>Contents: Read and write</b>.</li><li>Scrivi qui sotto il nome del repository e incolla il token.</li></ol>' +
+      '<label class="fld"><span>Repository dei dati (utente/nome)</span><input class="txt" id="sync-repo" value="' + esc(c ? c.repo : '') + '" placeholder="variedeventuali/scheda-dati" autocomplete="off" autocapitalize="none" spellcheck="false"></label>' +
+      '<label class="fld"><span>Token di accesso</span><input class="txt" id="sync-token" type="password" value="" placeholder="' + (c ? 'già salvato su questo telefono, lascia vuoto per tenerlo' : 'github_pat_…') + '" autocomplete="off" autocapitalize="none" spellcheck="false"></label>' +
+      '<div class="muted small">Il token resta salvato solo su questo telefono.</div><div class="status syncmsg"></div>' +
+      '<div class="row"><button class="btn" data-a="sync-save">Salva e sincronizza</button>' + (c ? '<button class="btn ghost" data-a="sync-off">Disattiva</button>' : '') + '</div>';
+  }
+
+  /* ---------- Azioni ---------- */
+  function currentSession() { return phaseObj().sessions[cur]; }
+  function updateCount() {
+    var s = currentSession(), sets = draft.sets, total = 0, done = 0;
+    s.ex.forEach(function (e, i) { if (e.note) return; total += e.s; var a = sets[i] || []; for (var k = 0; k < e.s; k++) if (a[k]) done++; });
+    var c = document.getElementById('count'); if (c) c.textContent = done + ' di ' + total + ' serie fatte';
+    return done;
+  }
+  function onClick(ev) {
+    var b = ev.target.closest('[data-a]'); if (!b) return;
+    var a = b.dataset.a, p;
+    if (a === 'sync-open') { view = 'sync'; render(); paintSync(); window.scrollTo(0, 0); }
+    else if (a === 'sync-back') { view = 'profiles'; render(); window.scrollTo(0, 0); }
+    else if (a === 'sync-now') { syncNow(); }
+    else if (a === 'sync-off') { lsSet(SYNC_KEY, ''); sync.msg = ''; sync.at = null; view = 'profiles'; render(); toast('Sincronizzazione disattivata'); }
+    else if (a === 'sync-save') {
+      var rp2 = (document.getElementById('sync-repo').value || '').trim().replace(/^https?:\/\/github\.com\//, '').replace(/\.git$/, '').replace(/\/$/, '');
+      var tk = (document.getElementById('sync-token').value || '').trim(), old = syncCfg();
+      if (!/^[\w.-]+\/[\w.-]+$/.test(rp2)) { sync.msg = 'Scrivi il repository come utente/nome, per esempio variedeventuali/scheda-dati.'; paintSync(); return; }
+      if (!tk && old) tk = old.token;
+      if (!tk) { sync.msg = 'Incolla il token di accesso.'; paintSync(); return; }
+      lsSet(SYNC_KEY, JSON.stringify({ repo: rp2, token: tk })); sync.msg = '';
+      syncNow().then(function () { if (!sync.msg) { view = 'profiles'; render(); toast('Sincronizzazione attiva'); } });
+    }
+    else if (a === 'exit-no') { document.getElementById('exit').hidden = true; }
+    else if (a === 'exit-yes') {
+      document.getElementById('exit').hidden = true; flush();
+      try { window.history.go(-2); } catch (e) {}
+      setTimeout(function () { try { window.close(); } catch (e) {} }, 400);
+    }
+    else if (a === 'profiles') { stopTimer(); flush(); view = 'profiles'; render(); window.scrollTo(0, 0); }
+    else if (a === 'profile') {
+      stopTimer(); prof = b.dataset.id; PHASES = PROFILES.filter(function (x) { return x.id === prof; })[0].plan; buildIndex();
+      state = DEF(); draft = null; progKey = ''; askReset = false;
+      load().then(function () {
+        if (!Array.isArray(state.plan) || !state.plan.length) state.plan = clone(PROFILES.filter(function (x) { return x.id === prof; })[0].plan);
+        PHASES = state.plan; buildIndex(); loadedProf = prof;
+        if (!PHASES.some(function (q) { return q.id === state.phase; })) state.phase = PHASES[0].id;
+        view = 'home'; render(); window.scrollTo(0, 0);
+      });
+    }
+    else if (a === 'ed-phase') { editCtx = { p: +b.dataset.id }; view = 'edphase'; render(); window.scrollTo(0, 0); }
+    else if (a === 'ed-sess') { editCtx.s = +b.dataset.i; view = 'edsess'; render(); window.scrollTo(0, 0); }
+    else if (a === 'ed-ex') { editCtx.e = +b.dataset.i; view = 'edex'; render(); window.scrollTo(0, 0); }
+    else if (a === 'ed-back') { view = view === 'edex' ? 'edsess' : view === 'edsess' ? 'edphase' : 'phases'; buildIndex(); armed = ''; render(); window.scrollTo(0, 0); }
+    else if (a === 'add-phase') {
+      var nid = PHASES.reduce(function (m, q) { return Math.max(m, q.id); }, 0) + 1;
+      PHASES.push({ id: nid, name: 'Nuova fase', target: 4, blurb: '', sessions: [] }); state.weeks[nid] = 1; queueSave();
+      editCtx = { p: nid }; view = 'edphase'; render(); window.scrollTo(0, 0);
+    }
+    else if (a === 'add-sess') {
+      var pp = getPhase(editCtx.p); pp.sessions.push({ id: 's' + Date.now().toString(36), label: 'Nuovo allenamento', tag: '', ex: [] }); queueSave();
+      editCtx.s = pp.sessions.length - 1; view = 'edsess'; render(); window.scrollTo(0, 0);
+    }
+    else if (a === 'add-ex') {
+      var xs = getPhase(editCtx.p).sessions[editCtx.s], t = b.dataset.t;
+      xs.ex.push(t === 'note' ? { note: true, title: 'Finale', text: '' } : t === 'circ' ? { circuit: true, label: 'Nuovo circuito', s: 3, rest: 60, items: [] } : { n: 'Nuovo esercizio', s: 3, r: '10', rest: 90, kg: '' });
+      buildIndex(); queueSave(); editCtx.e = xs.ex.length - 1; view = 'edex'; render(); window.scrollTo(0, 0);
+    }
+    else if (a === 'mv') {
+      var arr2 = b.dataset.k === 'phase' ? PHASES : b.dataset.k === 'sess' ? getPhase(editCtx.p).sessions : getPhase(editCtx.p).sessions[editCtx.s].ex;
+      var i2 = +b.dataset.i, j2 = i2 + +b.dataset.d;
+      if (j2 >= 0 && j2 < arr2.length) { var tmp = arr2[i2]; arr2[i2] = arr2[j2]; arr2[j2] = tmp; buildIndex(); queueSave(); render(); }
+    }
+    else if (a === 'del') {
+      var tok = b.dataset.k + ':' + b.dataset.i;
+      if (armed !== tok) { armed = tok; render(); clearTimeout(armT); armT = setTimeout(function () { armed = ''; render(); }, 3500); }
+      else { armed = ''; clearTimeout(armT); doDelete(b.dataset.k, +b.dataset.i); }
+    }
+    else if (a === 'export') exportData();
+    else if (a === 'imp-no') { pendingImport = null; render(); }
+    else if (a === 'imp-yes') applyImport();
+    else if (a === 'nav') { askReset = false; stopTimer(); view = b.dataset.v; progKey = progKey; render(); window.scrollTo(0, 0); }
+    else if (a === 'open') {
+      cur = +b.dataset.i; var ph = phaseObj(), sid = ph.id + ph.sessions[cur].id;
+      if (!draft || draft.sid !== sid || draft.date !== today()) draft = { date: today(), sid: sid, sets: {} };
+      view = 'workout'; render(); window.scrollTo(0, 0);
+    }
+    else if (a === 'back') { stopTimer(); view = 'home'; render(); }
+    else if (a === 'set') {
+      var i = +b.dataset.i, j = +b.dataset.j, e = currentSession().ex[i];
+      var arr = draft.sets[i] || (draft.sets[i] = []);
+      arr[j] = arr[j] ? 0 : 1;
+      b.setAttribute('aria-pressed', arr[j] ? 'true' : 'false');
+      var full = true; for (var k = 0; k < e.s; k++) if (!arr[k]) full = false;
+      document.getElementById('ex' + i).classList.toggle('alldone', full);
+      saveDraft(); updateCount();
+      if (arr[j]) startTimer(e.rest); else stopTimer();
+    }
+    else if (a === 'finish') {
+      var s = currentSession(), done = updateCount();
+      if (!done) { toast('Spunta almeno una serie'); return; }
+      var loads = {}, total = 0;
+      s.ex.forEach(function (e) { if (e.note) return; total += e.s; if (e.key && !e.bw) { var v = getLoad(e.key); if (v) loads[e.key] = v; } });
+      var ph = phaseObj();
+      state.history.push({ d: today(), ph: ph.id, t: Date.now(), wk: wkOf(ph), pn: ph.name, s: s.id, sl: s.label, l: loads, n: done, t: total });
+      if (state.history.length > 400) state.history = state.history.slice(-400);
+      touch(); draft = null; lsSet(DK(), ''); stopTimer(); flush();
+      view = 'home'; render(); window.scrollTo(0, 0); toast('Allenamento salvato');
+    }
+    else if (a === 'wk+' || a === 'wk-') { p = +b.dataset.p; state.weeks[p] = Math.max(1, (state.weeks[p] || 1) + (a === 'wk+' ? 1 : -1)); queueSave(); render(); }
+    else if (a === 'activate') { state.phase = +b.dataset.p; queueSave(); render(); toast('Fase ' + state.phase + ' attiva'); }
+    else if (a === 'reset-ask') { askReset = true; render(); window.scrollTo(0, document.body.scrollHeight); }
+    else if (a === 'reset-no') { askReset = false; render(); }
+    else if (a === 'reset-yes') { state.history = []; state.resetAt = Date.now(); touch(); progKey = ''; askReset = false; flush(); render(); window.scrollTo(0, 0); toast('Storico azzerato'); }
+    else if (a === 't+15') { timer.end += 15000; var el = document.getElementById('timer'); el.classList.remove('end'); timer.fired = false; tick(); }
+    else if (a === 't-15') { timer.end -= 15000; tick(); }
+    else if (a === 't-skip') stopTimer();
+  }
+  function onInput(ev) {
+    var t = ev.target;
+    if (t.classList && t.classList.contains('kg')) { state.loads[t.dataset.key] = t.value.trim(); queueSave(); }
+    else if (t.dataset && t.dataset.f && t.type !== 'checkbox') editField(t);
+  }
+  function onChange(ev) {
+    var t = ev.target;
+    if (t.id === 'progsel') { progKey = t.value; render(); }
+    else if (t.type === 'checkbox' && t.dataset.f) { editField(t); render(); }
+    else if (t.id === 'impfile' && t.files && t.files[0]) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        try {
+          var d = JSON.parse(fr.result), pr = {};
+          if (d && d.app === 'scheda-palestra') {
+            if (d.profiles) pr = d.profiles; else if (d.state && d.profile) pr[d.profile] = { state: d.state };
+          }
+          var ok = {}, any = false;
+          PROFILES.forEach(function (p) { var e = pr[p.id]; if (e && e.state && Array.isArray(e.state.plan) && e.state.plan.length) { ok[p.id] = e; any = true; } });
+          if (any) { pendingImport = { profiles: ok }; render(); } else toast('File non valido');
+        } catch (e) { toast('File non valido'); }
+      };
+      fr.readAsText(t.files[0]); t.value = '';
+    }
+  }
+
+  document.addEventListener('click', onClick);
+  document.addEventListener('input', onInput);
+  document.addEventListener('change', onChange);
+  window.addEventListener('pagehide', function () { flush(true); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) flush(true); else scheduleSync(); });
+  window.addEventListener('online', scheduleSync);
+
+  try { window.history.replaceState({ guard: true }, ''); window.history.pushState({ view: 'profiles', ctx: {}, cur: null }, ''); } catch (e) {}
+  lastNav = 'profiles|{}|null';
+  render();
+  if (syncCfg()) setTimeout(syncNow, 400);
+  try { if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js'); } catch (e) {}
+})();
+</script>
+
+</body>
+</html>
