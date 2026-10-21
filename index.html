@@ -139,6 +139,14 @@ textarea.txt { resize: vertical; }
 .exitwrap { position: fixed; inset: 0; z-index: 20; background: rgba(0, 0, 0, .5); display: flex; align-items: center; justify-content: center; padding: 16px; }
 .exitcard { padding: 18px; display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 360px; }
 .exitcard b { font-family: var(--f-display); font-size: 26px; text-transform: uppercase; }
+.foot { margin-top: 10px; text-align: center; font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+.foot.warn { color: var(--red); font-weight: 600; }
+.hist { width: 100%; text-align: left; cursor: pointer; padding: 12px 14px; display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.pill { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; white-space: nowrap; flex: none; }
+.pill.done { background: var(--green); color: var(--bg); }
+.pill.part { background: var(--orange); color: var(--bg); }
+.pill.skip { border: 1px solid var(--line); color: var(--muted); }
+.erow.st-skip .exname { color: var(--muted); }
 </style>
 
 </head>
@@ -256,6 +264,7 @@ textarea.txt { resize: vertical; }
   var DK = function () { return prof === 'lui' ? 'gym-draft' : 'gym-draft-lei'; };
 
   /* ---------- Stato e salvataggio ---------- */
+  var APP_VERSION = '1.2 · 21 ott 2026';
   var DEF = function () { return { phase: 1, weeks: { 1: 1, 2: 1, 3: 1, 4: 1 }, loads: {}, history: [], plan: null, updatedAt: 0, resetAt: 0 }; };
   var state = DEF();
   var store = { mode: 'local', ref: null };
@@ -358,7 +367,7 @@ textarea.txt { resize: vertical; }
     document.querySelector('.nav').hidden = (view === 'profiles' || view === 'sync');
     var items = [['home', 'Oggi'], ['phases', 'Fasi'], ['history', 'Storico']];
     document.getElementById('nav').innerHTML = items.map(function (i) {
-      var on = (view === i[0]) || (view === 'workout' && i[0] === 'home') || (view.indexOf('ed') === 0 && i[0] === 'phases');
+      var on = (view === i[0]) || (view === 'workout' && i[0] === 'home') || (view.indexOf('ed') === 0 && i[0] === 'phases') || (view === 'histdetail' && i[0] === 'history');
       return '<button data-a="nav" data-v="' + i[0] + '"' + (on ? ' aria-current="page"' : '') + '>' + i[1] + '</button>';
     }).join('');
   }
@@ -447,7 +456,7 @@ textarea.txt { resize: vertical; }
     }
     out += '<h2>Sessioni</h2>';
     state.history.slice().reverse().slice(0, 60).forEach(function (h) {
-      out += '<div class="card hist"><span><b>' + esc(h.sl) + '</b><br><span class="muted small">' + esc(h.pn || ('Fase ' + h.ph)) + ' · settimana ' + h.wk + '</span></span><span style="text-align:right"><b>' + fmt(h.d) + '</b><br><span class="muted small">' + h.n + '/' + h.t + ' serie</span></span></div>';
+      out += '<button class="card hist" data-a="hist-open" data-id="' + esc(hid(h)) + '"><span><b>' + esc(h.sl) + '</b><br><span class="muted small">' + esc(h.pn || ('Fase ' + h.ph)) + ' · settimana ' + h.wk + '</span></span><span style="text-align:right"><b>' + fmt(h.d) + '</b><br><span class="muted small">' + h.n + '/' + h.t + ' serie ›</span></span></button>';
     });
     if (askReset) out += '<div class="card phase"><div><b>Azzerare lo storico?</b></div><div class="muted small">Cancella tutte le sessioni e i progressi dei kg. Fase, settimane e ultimi carichi restano.</div><div class="row"><button class="btn small" data-a="reset-yes">Sì, azzera</button><button class="btn small ghost" data-a="reset-no">Annulla</button></div></div>';
     else out += '<button class="btn ghost" data-a="reset-ask">Azzera storico</button>';
@@ -535,9 +544,30 @@ textarea.txt { resize: vertical; }
     else if (k === 'phase') { var id = PHASES[i].id; PHASES.splice(i, 1); if (state.phase === id) state.phase = PHASES[0].id; view = 'phases'; }
     buildIndex(); queueSave(); render(); toast('Eliminato');
   }
+  var fmtLong = function (iso) { var p = iso.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }); };
+  function histdetail() {
+    var h = state.history.filter(function (e) { return hid(e) === editCtx.h; })[0];
+    var out = '<button class="back" data-a="hist-back">‹ Storico</button>';
+    if (!h) return out + '<div class="note">Allenamento non trovato.</div>';
+    out += '<div><div class="eyebrow">' + esc(fmtLong(h.d)) + ' · ' + esc(h.pn || ('Fase ' + h.ph)) + ' · settimana ' + h.wk + '</div><h1>' + esc(h.sl) + '</h1></div>';
+    out += '<div class="muted small">' + h.n + ' di ' + h.t + ' serie fatte</div>';
+    if (!h.ex) return out + '<div class="note">Il dettaglio degli esercizi c\u2019è solo per gli allenamenti conclusi con questa versione dell\u2019app.</div>';
+    var c = { done: 0, part: 0, skip: 0 }, rows = '';
+    h.ex.forEach(function (x) {
+      var st = x[1] >= x[2] ? 'done' : x[1] > 0 ? 'part' : 'skip';
+      c[st]++;
+      rows += '<div class="card erow st-' + st + '"><div class="exhead"><div class="exname">' + esc(x[0]) + '</div><span class="pill ' + st + '">' + (st === 'done' ? 'Fatto' : st === 'part' ? 'Parziale' : 'Non fatto') + '</span></div><div class="scheme">' + x[1] + ' di ' + x[2] + ' serie' + (x[3] ? ' · ' + esc(x[3]) + ' kg' : '') + '</div></div>';
+    });
+    var sum = [];
+    if (c.done) sum.push(c.done + (c.done === 1 ? ' completo' : ' completi'));
+    if (c.part) sum.push(c.part + (c.part === 1 ? ' parziale' : ' parziali'));
+    if (c.skip) sum.push(c.skip + (c.skip === 1 ? ' non fatto' : ' non fatti'));
+    return out + '<div><b>Esercizi: ' + sum.join(', ') + '</b></div>' + rows;
+  }
   function render() {
     var el = document.getElementById('app');
-    el.innerHTML = view === 'profiles' ? profilesView() : view === 'home' ? home() : view === 'workout' ? workout() : view === 'phases' ? phases() : view === 'edphase' ? edphase() : view === 'edsess' ? edsess() : view === 'edex' ? edex() : view === 'sync' ? syncView() : history();
+    var htm = view === 'profiles' ? profilesView() : view === 'home' ? home() : view === 'workout' ? workout() : view === 'phases' ? phases() : view === 'edphase' ? edphase() : view === 'edsess' ? edsess() : view === 'edex' ? edex() : view === 'sync' ? syncView() : view === 'histdetail' ? histdetail() : history();
+    el.innerHTML = htm + footHTML();
     nav();
     if (view === 'workout') document.getElementById('app').dataset.v = 'w'; else delete el.dataset.v;
     var key = view + '|' + JSON.stringify(editCtx) + '|' + cur;
@@ -576,14 +606,14 @@ textarea.txt { resize: vertical; }
     if (Array.isArray(o)) return '[' + o.map(canon).join(',') + ']';
     return '{' + Object.keys(o).sort().map(function (k) { return JSON.stringify(k) + ':' + canon(o[k]); }).join(',') + '}';
   }
-  var hid = function (e) { return e.id || [e.d, e.ph, e.s, e.t || 0, e.n, e.wk].join('|'); };
+  var hid = function (e) { return [e.d, e.ph, e.s, e.ts || 0, e.n, e.wk, e.t].join('|'); };
   function mergeStates(a, b) {
     if (!a) return b ? clone(b) : null;
     if (!b) return clone(a);
     var newer = (a.updatedAt || 0) >= (b.updatedAt || 0) ? a : b, r = clone(newer);
     var rs = Math.max(a.resetAt || 0, b.resetAt || 0), seen = {}, h = [];
-    (a.history || []).concat(b.history || []).forEach(function (e) { var k = hid(e); if ((e.t || 0) < rs || seen[k]) return; seen[k] = 1; h.push(e); });
-    h.sort(function (x, y) { return x.d < y.d ? -1 : x.d > y.d ? 1 : (x.t || 0) - (y.t || 0); });
+    (a.history || []).concat(b.history || []).forEach(function (e) { var k = hid(e); if ((e.ts || 0) < rs || seen[k]) return; seen[k] = 1; h.push(e); });
+    h.sort(function (x, y) { return x.d < y.d ? -1 : x.d > y.d ? 1 : (x.ts || 0) - (y.ts || 0); });
     r.history = h.slice(-400);
     if (rs) r.resetAt = rs;
     return r;
@@ -593,6 +623,14 @@ textarea.txt { resize: vertical; }
     var h = { 'Authorization': 'Bearer ' + cfg.token, 'Accept': 'application/vnd.github+json' };
     if (body) h['Content-Type'] = 'application/json';
     return fetch('https://api.github.com/repos/' + cfg.repo + path, { method: method, cache: 'no-store', headers: h, body: body ? JSON.stringify(body) : undefined });
+  }
+  function readExp(resp, cfg) {
+    try {
+      var hx = resp && resp.headers && resp.headers.get && resp.headers.get('github-authentication-token-expiration');
+      if (!hx) return;
+      var tx = Date.parse(hx.replace(' UTC', 'Z').replace(' ', 'T'));
+      if (!isNaN(tx) && tx !== cfg.expAuto) { cfg.expAuto = tx; lsSet(SYNC_KEY, JSON.stringify(cfg)); }
+    } catch (e) {}
   }
   function syncErr(e) {
     var s = e && e.status;
@@ -608,7 +646,21 @@ textarea.txt { resize: vertical; }
     if (sync.msg) return sync.msg;
     return c.repo + (sync.at ? ' · ultima sincronizzazione alle ' + sync.at.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : ' · in attesa');
   }
-  function paintSync() { var t = syncLabel(); [].forEach.call(document.querySelectorAll('.syncmsg'), function (el) { el.textContent = t; }); }
+  function tokenInfo() {
+    var c = syncCfg(); if (!c) return null;
+    var t = c.expAuto || (c.exp ? new Date(c.exp + 'T23:59:59').getTime() : 0);
+    if (!t || isNaN(t)) return { txt: 'scadenza token non nota', warn: false };
+    var sod = function (x) { var q = new Date(x); q.setHours(0, 0, 0, 0); return q.getTime(); };
+    var days = Math.round((sod(t) - sod(Date.now())) / 86400000);
+    if (days < 0) return { txt: 'token scaduto, creane uno nuovo', warn: true };
+    if (days === 0) return { txt: 'il token scade oggi', warn: true };
+    return { txt: 'il token scade tra ' + days + (days === 1 ? ' giorno' : ' giorni'), warn: days <= 7 };
+  }
+  function footText() { var ti = tokenInfo(); return 'Versione ' + APP_VERSION + (ti ? ' · ' + ti.txt : ''); }
+  function footHTML() { var ti = tokenInfo(); return '<div class="foot' + (ti && ti.warn ? ' warn' : '') + '" id="foot">' + esc(footText()) + '</div>'; }
+  function paintFoot() { var f = document.getElementById('foot'); if (!f) return; var ti = tokenInfo(); f.textContent = footText(); f.classList.toggle('warn', !!(ti && ti.warn)); }
+  function paintSync() {
+    paintFoot(); var t = syncLabel(); [].forEach.call(document.querySelectorAll('.syncmsg'), function (el) { el.textContent = t; }); }
   function scheduleSync() { if (!syncCfg()) return; clearTimeout(sync.timer); sync.timer = setTimeout(syncNow, 3000); }
   function applyMerged(ch, startUA) {
     var calm = ['workout', 'edphase', 'edsess', 'edex', 'sync'].indexOf(view) < 0, redo = false;
@@ -633,8 +685,11 @@ textarea.txt { resize: vertical; }
       var startUA = state.updatedAt;
       for (var attempt = 0; attempt < 2; attempt++) {
         var r = await ghReq(cfg, 'GET', '/contents/' + SYNC_FILE), remote = null, sha = null;
-        if (r.status === 404) { var rr = await ghReq(cfg, 'GET', ''); if (!rr.ok) throw httpErr(rr); }
-        else if (r.ok) { var j = await r.json(); sha = j.sha; remote = JSON.parse(b64utf8(j.content)); }
+        readExp(r, cfg);
+        if (r.status === 404) { var rr = await ghReq(cfg, 'GET', ''); readExp(rr, cfg); if (!rr.ok) throw httpErr(rr); }
+        else if (r.ok) {
+          var j = await r.json(); sha = j.sha; remote = JSON.parse(b64utf8(j.content));
+        }
         else throw httpErr(r);
         var rp = (remote && remote.profiles) || {}, out = {}, chLocal = {}, chRemote = false;
         PROFILES.forEach(function (p) {
@@ -664,7 +719,7 @@ textarea.txt { resize: vertical; }
       '<ol class="items"><li>Crea un repository <b>privato</b> per i dati, con un README.</li><li>Crea un token con accesso solo a quel repository e permesso <b>Contents: Read and write</b>.</li><li>Scrivi qui sotto il nome del repository e incolla il token.</li></ol>' +
       '<label class="fld"><span>Repository dei dati (utente/nome)</span><input class="txt" id="sync-repo" value="' + esc(c ? c.repo : '') + '" placeholder="variedeventuali/scheda-dati" autocomplete="off" autocapitalize="none" spellcheck="false"></label>' +
       '<label class="fld"><span>Token di accesso</span><input class="txt" id="sync-token" type="password" value="" placeholder="' + (c ? 'già salvato su questo telefono, lascia vuoto per tenerlo' : 'github_pat_…') + '" autocomplete="off" autocapitalize="none" spellcheck="false"></label>' +
-      '<div class="muted small">Il token resta salvato solo su questo telefono.</div><div class="status syncmsg"></div>' +
+      '<label class="fld"><span>Scadenza del token (facoltativa)</span><input class="txt" id="sync-exp" type="date" value="' + esc(c && c.exp || '') + '"></label><div class="muted small">È la data che GitHub ti mostra quando crei il token. Serve per avvisarti in fondo alla pagina prima che scada. Se l\u2019app riesce a leggerla da GitHub, la aggiorna da sola.</div><div class="muted small">Il token resta salvato solo su questo telefono.</div><div class="status syncmsg"></div>' +
       '<div class="row"><button class="btn" data-a="sync-save">Salva e sincronizza</button>' + (c ? '<button class="btn ghost" data-a="sync-off">Disattiva</button>' : '') + '</div>';
   }
 
@@ -679,7 +734,9 @@ textarea.txt { resize: vertical; }
   function onClick(ev) {
     var b = ev.target.closest('[data-a]'); if (!b) return;
     var a = b.dataset.a, p;
-    if (a === 'sync-open') { view = 'sync'; render(); paintSync(); window.scrollTo(0, 0); }
+    if (a === 'hist-open') { editCtx = { h: b.dataset.id }; view = 'histdetail'; render(); window.scrollTo(0, 0); }
+    else if (a === 'hist-back') { view = 'history'; render(); window.scrollTo(0, 0); }
+    else if (a === 'sync-open') { view = 'sync'; render(); paintSync(); window.scrollTo(0, 0); }
     else if (a === 'sync-back') { view = 'profiles'; render(); window.scrollTo(0, 0); }
     else if (a === 'sync-now') { syncNow(); }
     else if (a === 'sync-off') { lsSet(SYNC_KEY, ''); sync.msg = ''; sync.at = null; view = 'profiles'; render(); toast('Sincronizzazione disattivata'); }
@@ -689,7 +746,8 @@ textarea.txt { resize: vertical; }
       if (!/^[\w.-]+\/[\w.-]+$/.test(rp2)) { sync.msg = 'Scrivi il repository come utente/nome, per esempio variedeventuali/scheda-dati.'; paintSync(); return; }
       if (!tk && old) tk = old.token;
       if (!tk) { sync.msg = 'Incolla il token di accesso.'; paintSync(); return; }
-      lsSet(SYNC_KEY, JSON.stringify({ repo: rp2, token: tk })); sync.msg = '';
+      var ex2 = (document.getElementById('sync-exp').value || '').trim(), same = old && old.repo === rp2 && old.token === tk;
+      lsSet(SYNC_KEY, JSON.stringify({ repo: rp2, token: tk, exp: ex2 || undefined, expAuto: same ? old.expAuto : undefined })); sync.msg = '';
       syncNow().then(function () { if (!sync.msg) { view = 'profiles'; render(); toast('Sincronizzazione attiva'); } });
     }
     else if (a === 'exit-no') { document.getElementById('exit').hidden = true; }
@@ -757,10 +815,18 @@ textarea.txt { resize: vertical; }
     else if (a === 'finish') {
       var s = currentSession(), done = updateCount();
       if (!done) { toast('Spunta almeno una serie'); return; }
-      var loads = {}, total = 0;
-      s.ex.forEach(function (e) { if (e.note) return; total += e.s; if (e.key && !e.bw) { var v = getLoad(e.key); if (v) loads[e.key] = v; } });
+      var loads = {}, total = 0, exl = [];
+      s.ex.forEach(function (e, i) {
+        if (e.note) return;
+        total += e.s;
+        var arr = (draft.sets && draft.sets[i]) || [], dn = 0;
+        for (var q = 0; q < e.s; q++) if (arr[q]) dn++;
+        var kgv = '';
+        if (e.key && !e.bw) { kgv = getLoad(e.key); if (kgv) loads[e.key] = kgv; }
+        exl.push([e.circuit ? e.label : e.n, dn, e.s, kgv]);
+      });
       var ph = phaseObj();
-      state.history.push({ d: today(), ph: ph.id, t: Date.now(), wk: wkOf(ph), pn: ph.name, s: s.id, sl: s.label, l: loads, n: done, t: total });
+      state.history.push({ d: today(), ts: Date.now(), ph: ph.id, wk: wkOf(ph), pn: ph.name, s: s.id, sl: s.label, l: loads, n: done, t: total, ex: exl });
       if (state.history.length > 400) state.history = state.history.slice(-400);
       touch(); draft = null; lsSet(DK(), ''); stopTimer(); flush();
       view = 'home'; render(); window.scrollTo(0, 0); toast('Allenamento salvato');
